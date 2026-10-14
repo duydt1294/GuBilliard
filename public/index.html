@@ -80,7 +80,7 @@ table.sched tr>th:first-child{width:52px}
 .me{font-weight:700;color:var(--g);background:var(--gl);border-radius:4px;padding:0 3px}
 /* Chủ quán */
 .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#e3e9e6;padding:4px;border-radius:14px;margin-bottom:12px}
-.tabs button{background:transparent;color:var(--g);min-height:50px;padding:4px 2px;font-size:12.5px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15}
+.tabs button{background:transparent;color:var(--g);min-height:50px;padding:4px 2px;font-size:12px;white-space:nowrap;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15}
 .tabs button span{font-size:19px}
 .tabs button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -97,6 +97,7 @@ table.ov tr.sel th:first-child small{color:#d6eadf}
 .ovc.ok{background:var(--gl);color:var(--g)}
 .ovc.lack{background:var(--rl);color:var(--r)}
 .ovc.over{background:var(--bl);color:var(--b)}
+.ovc.wait{background:var(--ol);color:var(--o)}
 .ovc.zero{background:#f1f4f2;color:var(--mu)}
 tr.sel .ovc{border-color:var(--g)}
 #dayCard{scroll-margin-top:72px;padding:0;overflow:hidden}
@@ -130,7 +131,7 @@ table.sum .n{text-align:center;width:62px}
 .nvi:last-child{border-bottom:0}
 .nvi .avt{width:40px;height:40px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none}
 .nvi .tx{flex:1;min-width:0}
-.nvi .tx b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nvi .tx b{display:block;font-size:16px;line-height:1.25;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .nvi .tx small{color:var(--mu);font-size:13px}
 .nvi .go{color:#b0bab5;font-size:22px}
 .nvi .main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;background:none;border:0;padding:4px 0;min-height:48px;color:inherit;text-align:left;font-weight:400}
@@ -145,6 +146,8 @@ table.sum .n{text-align:center;width:62px}
 .stepper input{text-align:center;font-size:22px;font-weight:700;color:var(--g);min-height:52px}
 .nvi.off .avt{background:#eceeed;color:#9aa6a0}
 .nvi.off b{color:var(--mu)}
+.rate.ro button{display:none}
+@media (max-width:359px){.nvi .avt{display:none}.rate button{width:34px;height:34px}.rate .v{min-width:38px}.rate{gap:2px}}
 .badge{font-size:12px;padding:3px 9px;border-radius:20px;background:#eceeed;color:var(--mu);white-space:nowrap}
 .grp{font-size:13px;font-weight:700;color:var(--mu);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.3px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#e3e9e6;padding:4px;border-radius:12px}
@@ -191,7 +194,8 @@ input[type=time]{min-height:46px}
 .bar button{min-height:50px;padding:0 18px}
 .bar.dirty #btnSave{animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(20,128,79,.45)}50%{box-shadow:0 0 0 7px rgba(20,128,79,0)}}
-.toast{position:fixed;left:12px;right:12px;margin:0 auto;max-width:480px;bottom:calc(88px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:12px 16px;border-radius:12px;z-index:60;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.25);text-align:center}
+.toast{position:fixed;left:12px;right:12px;margin:0 auto;max-width:480px;bottom:calc(88px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:12px 16px;border-radius:12px;z-index:60;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.25);text-align:center;pointer-events:none}
+.toast.top{bottom:auto;top:calc(12px + env(safe-area-inset-top))}   /* đang mở bảng trượt / hộp thoại → lên trên, không che nút */
 .toast.err{background:var(--r)}
 .loading{position:fixed;inset:0;background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;z-index:50}
 .spin{width:42px;height:42px;border:4px solid var(--gl);border-top-color:var(--g2);border-radius:50%;animation:sp .8s linear infinite}
@@ -244,7 +248,7 @@ input[type=time]{min-height:46px}
       </div>
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.4</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.6</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -282,12 +286,13 @@ input[type=time]{min-height:46px}
       </div>
       <div class="card">
         <h3>Tổng quan tuần</h3>
-        <p class="hint" style="margin-bottom:4px">Số đã xếp / số cần · chạm để xem ngày</p>
+        <p class="hint" style="margin-bottom:4px">Số lớn: <b>đã xếp / cần</b> · dòng nhỏ: số người <b>đăng ký</b> · chạm để xem ngày</p>
         <div id="overview"></div>
         <div class="legend">
           <span><i style="background:var(--gl);border:1px solid var(--g2)"></i>Đủ người</span>
-          <span><i style="background:var(--rl);border:1px solid var(--r)"></i>Thiếu người</span>
-          <span><i style="background:var(--bl);border:1px solid var(--b)"></i>Dư người (được phép)</span>
+          <span><i style="background:var(--ol);border:1px solid var(--o)"></i>Chưa xếp đủ (đủ người đăng ký)</span>
+          <span><i style="background:var(--rl);border:1px solid var(--r)"></i>Thiếu cả người đăng ký</span>
+          <span><i style="background:var(--bl);border:1px solid var(--b)"></i>Xếp dư (được phép)</span>
           <span><i style="background:#f1f4f2;border:1px solid #c3cdc8"></i>Không cần người</span>
         </div>
       </div>
@@ -301,8 +306,8 @@ input[type=time]{min-height:46px}
       <div id="ccWeek" class="weeknav"></div>
       <div class="card">
         <div class="tsum">
-          <div><b id="ccHours">0</b><small>giờ công cả quán</small></div>
-          <div><b id="ccPay">0đ</b><small>tổng lương tuần</small></div>
+          <div><b id="ccHours">0</b><small>giờ công</small></div>
+          <div><b id="ccPay">0đ</b><small>tổng lương</small></div>
         </div>
         <p class="hint" id="ccInfo" style="margin:4px 0 10px"></p>
         <button class="full" id="btnExport">📥 Xuất Excel bảng lương</button>
@@ -318,7 +323,7 @@ input[type=time]{min-height:46px}
         <h3 id="nvTitle">Danh sách</h3>
         <input id="nvSearch" type="search" placeholder="🔍 Tìm theo tên" autocomplete="off" style="margin:6px 0 4px">
         <div id="nvList"></div>
-        <p class="hint" style="margin:10px 0 0">Bấm <b>−</b> / <b>+</b> để giảm/tăng lương (nghìn đồng/giờ). Chạm vào tên để sửa tên, đổi trạng thái hoặc xóa.</p>
+        <p class="hint" id="nvHint" style="margin:10px 0 0">Bấm <b>−</b> / <b>+</b> để giảm/tăng lương (nghìn đồng/giờ). Chạm vào tên để sửa tên, đổi trạng thái hoặc xóa.</p>
       </div>
     </div>
 
@@ -466,9 +471,16 @@ let toastT;
 function toast(msg, err){
   let t = $('#toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
-  t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; t.hidden = false;
+  t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; t.hidden = false; syncToast();
   clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, err ? 5000 : 2500);
 }
+
+/** Thông báo nổi tránh che nút: khi có bảng trượt/hộp thoại đang mở thì đưa lên trên cùng. */
+function syncToast(){
+  const t = $('#toast'); if (!t) return;
+  t.classList.toggle('top', !!document.querySelector('.modal:not([hidden])'));
+}
+new MutationObserver(syncToast).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 
 /** Gọi API phía máy chủ (Vercel). Lỗi → hiện thông báo và trả về null. */
 async function call(fn, ...args){
@@ -776,7 +788,11 @@ $('#btnBack1').onclick = backToStaff;
 $('#btnBack2').onclick = backToStaff;
 
 
-function tab(name){
+async function tab(name){
+  if (S.tab === 'xep' && name !== 'xep' && S.dirty) {
+    if (!(await ask('Bạn chưa lưu xếp ca. Lưu trước khi chuyển tab?', '💾 Lưu', 'Ở lại'))) return;
+    if (!(await saveXep())) return;
+  }
   S.tab = name;
   $$('.tabs button').forEach(b => b.classList.toggle('act', b.dataset.tab === name));
   ['xep','cc','nv','cd'].forEach(t => $('#t-'+t).hidden = t !== name);
@@ -814,6 +830,8 @@ function applyAdmin(r){
 }
 
 function byIdMap(){ const m = {}; S.aw.staff.forEach(s => m[s.id] = s); return m; }
+/* Tổng quan: chưa xếp đủ thì phân biệt "đủ người đăng ký, chỉ chờ xếp" (cam) với "thiếu cả người đăng ký" (đỏ). */
+function ovState(n, need, reg){ const st = slotState(n, need); return st === 'lack' && Math.max(reg, n) >= need ? 'wait' : st; }
 function slotState(n, need){ return need === 0 && n === 0 ? 'zero' : (n < need ? 'lack' : (n > need ? 'over' : 'ok')); }
 
 function renderAdmin(){
@@ -852,7 +870,7 @@ function renderOverview(){
     h += `<tr class="${d === S.selDay ? 'sel' : ''}"><th>${SHORT[d]}<small>${dayDate(S.adminWeek,d)}</small></th>` +
       I.shifts.map((sh,s) => {
         const k = d+'-'+s, n = (S.asg[k] || []).length, need = Number(sh.need) || 0, reg = (r.registered[k] || []).length;
-        return `<td><button class="ovc ${slotState(n,need)}" data-d="${d}">${n}/${need}<small>${n > need ? 'dư ' + (n - need) : reg + ' đăng ký'}</small></button></td>`;
+        return `<td><button class="ovc ${ovState(n,need,reg)}" data-d="${d}">${n}/${need}<small>${n > need ? 'dư ' + (n - need) : (reg ? reg + ' đăng ký' : 'chưa ai đk')}</small></button></td>`;
       }).join('') + '</tr>';
   });
   $('#overview').innerHTML = h + '</table>';
@@ -883,7 +901,7 @@ function renderDay(){
     h += `<div class="slot ${slotState(asg.length, need)}">
       <div class="sloth"><span><b>${esc(sh.name)}</b> <span class="mu">${esc(sh.time)}</span></span><span class="cnt">${asg.length}/${need} người${asg.length > need ? ' · dư ' + (asg.length - need) : ''}</span></div>
       <div class="chips">${chips || '<span class="empty">Chưa ai đăng ký ca này</span>'}</div>
-      ${others.length ? `<select class="add" data-k="${k}" aria-label="Thêm người"><option value="">${asg.length >= need ? '+ Xếp thêm người (dư)…' : '+ Thêm người không đăng ký…'}</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : ''}
+      ${others.length ? `<select class="add" data-k="${k}" aria-label="Thêm người"><option value="">${asg.length >= need ? '+ Xếp thêm (dư)…' : '+ Thêm người…'}</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : ''}
     </div>`;
   });
   $('#dayCard').innerHTML = h;
@@ -1169,11 +1187,13 @@ function renderStaffTab(){
   const all = S.aw.staff.slice().sort((a,b) => a.name.localeCompare(b.name,'vi'));
   const on = all.filter(s => s.active), off = all.filter(s => !s.active);
   $('#nvTitle').textContent = `Danh sách · ${on.length} đang làm` + (off.length ? ` · ${off.length} đã nghỉ` : '');
+  $('#nvHint').innerHTML = isOwner() ? 'Bấm <b>−</b> / <b>+</b> để giảm/tăng lương (nghìn đồng/giờ). Chạm vào tên để sửa tên, đổi trạng thái hoặc xóa.'
+    : 'Lương (nghìn đồng/giờ) chỉ chủ quán sửa được. Chạm vào tên để sửa tên, đổi trạng thái hoặc xóa.';
   const match = s => !q || s.name.toLowerCase().includes(q);
   const item = s => `<div class="nvi ${s.active ? '' : 'off'}" data-id="${esc(s.id)}">
       <button class="main" data-open="1"><span class="avt">${esc(initials(s.name))}</span>
-        <span class="tx"><b>${esc(s.name)}</b><small>${s.active ? 'Chạm để sửa' : 'Đã nghỉ'}</small></span></button>
-      <div class="rate"><button data-rd="-1" aria-label="Giảm lương ${esc(s.name)}">−</button>
+        <span class="tx"><b>${esc(s.name)}</b>${s.active ? '' : '<small>Đã nghỉ</small>'}</span></button>
+      <div class="rate ${isOwner() ? '' : 'ro'}"><button data-rd="-1" aria-label="Giảm lương ${esc(s.name)}">−</button>
         <span class="v"><b>${kOf(rateOf(s))}</b><small>k/giờ</small></span>
         <button data-rd="1" aria-label="Tăng lương ${esc(s.name)}">+</button></div></div>`;
   const a = on.filter(match), b = off.filter(match);
@@ -1192,6 +1212,9 @@ function openNv(st){
   $('#nvmName').value = st ? st.name : '';
   $('#nvmRate').value = kOf(rateOf(st));
   rtHint();
+  const own = isOwner();
+  $('#nvmRate').disabled = $('#rtMinus').disabled = $('#rtPlus').disabled = !own;
+  if (!own) $('#rtHint').textContent = 'Chỉ chủ quán mới sửa được lương.';
   setSeg(st ? st.active : true);
   $('#nvmStatusWrap').hidden = $('#nvmDelWrap').hidden = !st;
   $('#nvmSave').textContent = st ? '💾 Lưu' : '+ Thêm';
@@ -1210,12 +1233,14 @@ const rateOf = s => (s && s.rate) || (S.aw && S.aw.settings.hourlyRate) || 18000
 const kOf = d => (Math.round(d / 100) / 10).toLocaleString('vi-VN');
 const parseK = v => { const n = Number(String(v).replace(',', '.').replace(/[^\d.]/g, '')); return n > 0 ? Math.round(n * 1000) : 0; };
 
+const isOwner = () => !!(S.me && S.me.role === 'owner');
 const rateTimers = {};
 $('#nvList').addEventListener('click', e => {
   const row = e.target.closest('.nvi'); if (!row) return;
   const st = S.aw.staff.find(s => s.id === row.dataset.id); if (!st) return;
   const rd = e.target.closest('[data-rd]');
   if (!rd) { if (e.target.closest('[data-open]')) openNv(st); return; }
+  if (!isOwner()) return;
   const next = Math.min(1000000, Math.max(1000, rateOf(st) + Number(rd.dataset.rd) * 1000));
   st.rate = next;
   row.querySelector('.v b').textContent = kOf(next);
@@ -1246,8 +1271,9 @@ $('#nvmSave').onclick = async () => {
   if (nvEditing && nvEditing.active && !active &&
       !(await ask(`Chuyển "${name}" sang Đã nghỉ?\nTên sẽ không còn hiện cho nhân viên chọn.`, 'Xác nhận'))) return;
   const rate = parseK($('#nvmRate').value);
-  if (!rate) { toast('Lương/giờ không hợp lệ', true); $('#nvmRate').focus(); return; }
-  const obj = { name, active, rate };
+  if (isOwner() && !rate) { toast('Lương/giờ không hợp lệ', true); $('#nvmRate').focus(); return; }
+  const obj = { name, active };
+  if (isOwner()) obj.rate = rate;
   if (nvEditing) obj.id = nvEditing.id;
   const list = await call('saveStaff', obj);
   if (!list) return;
@@ -1271,6 +1297,7 @@ function renderSettings(){
   const s = S.aw.settings;
   $('#cfShop').value = s.shopName;
   $('#cfRate').value = s.hourlyRate ? kOf(s.hourlyRate) : '';
+  $('#cfRate').disabled = !isOwner();
   $('#cfShifts').innerHTML = s.shifts.map((x,i) => `
     <div class="shrow">
       <small>Ca thứ ${i+1} · tên ca và số người cần</small>
@@ -1284,10 +1311,13 @@ function renderSettings(){
   $('#mgrCard').hidden = !(S.me && S.me.role === 'owner');
   if (S.me && S.me.role === 'owner' && !S.mgrLoaded) loadManagers();
 }
+const shiftTimeOk = t => /(\d{1,2})\s*(?:[:hg.]\s*(\d{2})?)?\s*[-–—~]+\s*(\d{1,2})/.test(t || '');
 $('#btnSaveCf').onclick = async () => {
+  const bad = $$('#cfShifts .shrow').find(r => !shiftTimeOk(r.querySelector('.tm').value));
+  if (bad) { toast('Giờ làm của ca chưa đúng dạng, vd 09:00 - 14:00', true); bad.querySelector('.tm').focus(); return; }
   const shifts = $$('#cfShifts .shrow').map(r => ({
     name: r.querySelector('.nm').value, time: r.querySelector('.tm').value, need: r.querySelector('.nd').value }));
-  const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts, hourlyRate: parseK($('#cfRate').value) || '' });
+  const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts, hourlyRate: isOwner() ? (parseK($('#cfRate').value) || '') : undefined });
   if (!out) return;
   S.aw.settings = out; S.init.shifts = out.shifts; S.init.shopName = out.shopName;
   setShop(out.shopName);

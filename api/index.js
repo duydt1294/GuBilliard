@@ -34,8 +34,10 @@ const fail = m => { throw new UserError(m); };
 /* ======================= TIỆN ÍCH ======================= */
 
 function checkWeek(week) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(week || ''))) fail('Tuần không hợp lệ.');
-  return String(week);
+  const w = String(week || '');
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(w) ? new Date(w + 'T00:00:00Z') : null;
+  if (!d || isNaN(d) || d.toISOString().slice(0, 10) !== w || d.getUTCDay() !== 1) fail('Tuần không hợp lệ.');
+  return w;
 }
 
 function fmtTime(d) {
@@ -81,9 +83,15 @@ async function weekStatus(db, week) {
   return w && STATUS.includes(w.status) ? w.status : 'MO';
 }
 
+/** Bỏ bản ghi trùng (cùng tuần, ngày, ca, người) – phòng khi 2 lần lưu chạy chồng lên nhau. */
+function uniq(rows) {
+  const seen = new Set();
+  return rows.filter(r => { const k = r.day + '-' + r.shift + '-' + r.staffId; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
 async function assignedMap(db, week, byId) {
   const map = {};
-  (await db.collection('assignments').find({ week }).toArray()).forEach(r => {
+  uniq(await db.collection('assignments').find({ week }).toArray()).forEach(r => {
     const k = keyOf(r);
     (map[k] = map[k] || []).push({ id: r.staffId, name: byId[r.staffId] ? byId[r.staffId].name : r.name });
   });
@@ -94,24 +102,40 @@ const byIdOf = list => { const m = {}; list.forEach(s => { m[s.id] = s; }); retu
 
 /* ======================= ĐĂNG NHẬP ======================= */
 
-const MAX_FAILS = 8, FAIL_WINDOW_MS = 15 * 60e3;
+const MAX_FAILS = 8, MAX_FAILS_ALL = 60, FAIL_WINDOW_MS = 15 * 60e3;
 
-/** Chặn dò mật khẩu/PIN: sai quá MAX_FAILS lần trong 15 phút từ cùng một IP → tạm khóa. */
+/**
+ * Chặn dò mật khẩu/PIN. Mỗi lần thử được tính TRƯỚC khi kiểm tra (tăng bộ đếm nguyên tử),
+ * nên gửi hàng loạt yêu cầu cùng lúc cũng không lọt. Giới hạn theo IP và toàn hệ thống
+ * (đăng nhập Gmail của chủ quán không bị ảnh hưởng).
+ */
+async function bumpAttempt(db, key) {
+  const col = db.collection('loginFails');
+  const now = new Date();
+  const bump = () => col.findOneAndUpdate({ _id: key }, { $inc: { count: 1 }, $setOnInsert: { first: now } },
+    { upsert: true, returnDocument: 'after' });
+  let doc;
+  try { doc = await bump(); }
+  catch (e) { if (e && e.code === 11000) doc = await bump(); else throw e; }   /* 2 lần tạo cùng lúc → thử lại */
+  doc = doc && doc.value !== undefined && doc.ok !== undefined ? doc.value : doc;     /* tương thích driver cũ */
+  if (doc && now - new Date(doc.first) >= FAIL_WINDOW_MS) {                            /* hết 15 phút → đếm lại */
+    await col.updateOne({ _id: key }, { $set: { count: 1, first: now } });
+    return { count: 1, first: now };
+  }
+  return doc || { count: 1, first: now };
+}
 async function checkLoginLimit(db, ip) {
-  const f = await db.collection('loginFails').findOne({ _id: ip });
-  if (f && f.count >= MAX_FAILS && Date.now() - new Date(f.first).getTime() < FAIL_WINDOW_MS) {
-    const mins = Math.ceil((FAIL_WINDOW_MS - (Date.now() - new Date(f.first).getTime())) / 60e3);
+  const [mine, all] = await Promise.all([bumpAttempt(db, 'ip:' + ip), bumpAttempt(db, 'all')]);
+  const over = mine.count > MAX_FAILS ? mine : (all.count > MAX_FAILS_ALL ? all : null);
+  if (over) {
+    const mins = Math.max(1, Math.ceil((FAIL_WINDOW_MS - (Date.now() - new Date(over.first).getTime())) / 60e3));
     fail(`Nhập sai quá nhiều lần. Vui lòng thử lại sau ${mins} phút.`);
   }
 }
-async function recordLoginFail(db, ip) {
+async function clearLoginLimit(db, ip) {
   const col = db.collection('loginFails');
-  const f = await col.findOne({ _id: ip });
-  if (!f || Date.now() - new Date(f.first).getTime() >= FAIL_WINDOW_MS) {
-    await col.updateOne({ _id: ip }, { $set: { count: 1, first: new Date() } }, { upsert: true });
-  } else {
-    await col.updateOne({ _id: ip }, { $inc: { count: 1 } });
-  }
+  await col.deleteOne({ _id: 'ip:' + ip });
+  await col.updateOne({ _id: 'all' }, { $inc: { count: -1 } });   /* lần đúng không tính vào giới hạn chung */
 }
 
 async function currentUser(db, token) {
@@ -134,7 +158,7 @@ async function getStaffWeek(db, staffId, week) {
   checkWeek(week);
   staffId = String(staffId || '');
   const status = await weekStatus(db, week);
-  const mine = await db.collection('registrations').find({ week, staffId }).toArray();
+  const mine = uniq(await db.collection('registrations').find({ week, staffId }).toArray());
   let schedule = null;
   if (status === 'CONG_BO') schedule = await assignedMap(db, week, byIdOf(await staffList(db)));
   return {
@@ -210,11 +234,10 @@ const PUBLIC = {
       }
     }
     if (!user) {
-      await recordLoginFail(db, ctx.ip);
       await new Promise(r => setTimeout(r, 900));          /* làm chậm dò mật khẩu */
       fail('Sai mật khẩu hoặc mã PIN.');
     }
-    await db.collection('loginFails').deleteOne({ _id: ctx.ip });
+    await clearLoginLimit(db, ctx.ip);
     const token = A.newToken(user);
     ctx.user = { role: user.role, name: user.name, id: user.sub };
     return { token, me: { name: user.name, role: user.role }, data: week ? await ADMIN.getAdminWeek(db, ctx, week) : null };
@@ -238,7 +261,7 @@ const ADMIN = {
     const status = w && STATUS.includes(w.status) ? w.status : 'MO';
     const byId = byIdOf(list);
     const registered = {}, notes = {};
-    (await db.collection('registrations').find({ week }).toArray()).forEach(r => {
+    uniq(await db.collection('registrations').find({ week }).toArray()).forEach(r => {
       const name = byId[r.staffId] ? byId[r.staffId].name : r.name;
       const k = keyOf(r);
       (registered[k] = registered[k] || []).push({ id: r.staffId, name });
@@ -308,7 +331,7 @@ const ADMIN = {
     const dup = list.find(x => x.active && x.id !== id && x.name.toLowerCase() === name.toLowerCase());
     if (dup && active) fail(`Đã có nhân viên tên "${name}". Hãy thêm chữ để phân biệt (vd: ${name} B).`);
     const set = { name, active, updatedAt: new Date() };
-    if (s.rate !== undefined) set.rate = parseRate(s.rate);          /* null = theo lương mặc định */
+    if (s.rate !== undefined && ctx.user.role === 'owner') set.rate = parseRate(s.rate);   /* chỉ chủ quán sửa lương */
     if (id) {
       const r = await db.collection('staff').updateOne({ _id: id }, { $set: set });
       if (!r.matchedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
@@ -318,15 +341,6 @@ const ADMIN = {
       if (set.rate == null) set.rate = (await settings(db)).hourlyRate || null;   /* nhân viên mới: lương mặc định */
       await db.collection('staff').insertOne(Object.assign({ _id: nid, createdAt: new Date() }, set, { active: true }));
     }
-    return staffList(db);
-  },
-
-  /** Tăng/giảm lương nhanh từ danh sách nhân viên (đồng/giờ). */
-  async setStaffRate(db, ctx, id, rate) {
-    const r = parseRate(rate);
-    if (r == null) fail('Lương/giờ không hợp lệ.');
-    const u = await db.collection('staff').updateOne({ _id: String(id || '') }, { $set: { rate: r, updatedAt: new Date() } });
-    if (!u.matchedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
     return staffList(db);
   },
 
@@ -389,11 +403,13 @@ const ADMIN = {
       need: Math.max(0, Math.min(20, parseInt(x && x.need, 10) || 0))
     }));
     if (!shifts.length) fail('Cần ít nhất 1 ca.');
+    shifts.forEach(x => {
+      if (!TS.parseShiftTime(x.time)) fail(`Giờ làm của "${x.name}" chưa đúng dạng, hãy ghi như 09:00 - 14:00.`);
+    });
     const cur = await settings(db);
     let hourlyRate = cur.hourlyRate;
-    if (s.hourlyRate !== undefined && String(s.hourlyRate).trim() !== '') {
-      hourlyRate = parseInt(String(s.hourlyRate).replace(/[^\d]/g, ''), 10);
-      if (!(hourlyRate >= 0) || hourlyRate > 10000000) fail('Lương mặc định/giờ không hợp lệ.');
+    if (ctx.user.role === 'owner' && s.hourlyRate !== undefined && String(s.hourlyRate).trim() !== '') {
+      hourlyRate = parseRate(s.hourlyRate);
     }
     await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, hourlyRate, updatedAt: new Date() } }, { upsert: true });
     return { shopName, shifts, hourlyRate };
@@ -402,7 +418,7 @@ const ADMIN = {
 
 async function timesheetOf(db, week) {
   const [assignments, attendance, staff, st] = await Promise.all([
-    db.collection('assignments').find({ week }).toArray(),
+    db.collection('assignments').find({ week }).toArray().then(uniq),
     db.collection('attendance').find({ week }).toArray(),
     staffList(db), settings(db)
   ]);
@@ -422,6 +438,16 @@ async function managerList(db) {
 
 const OWNER = {
   listManagers(db) { return managerList(db); },
+
+  /** Tăng/giảm lương nhanh từ danh sách nhân viên (đồng/giờ). */
+  async setStaffRate(db, ctx, id, rate) {
+    const r = parseRate(rate);
+    if (r == null) fail('Lương/giờ không hợp lệ.');
+    const u = await db.collection('staff').updateOne({ _id: String(id || '') }, { $set: { rate: r, updatedAt: new Date() } });
+    if (!u.matchedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
+    return staffList(db);
+  },
+
 
   async saveManager(db, ctx, m) {
     m = m || {};
@@ -484,7 +510,13 @@ module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'GET') {                                /* kiểm tra nhanh: mở /api trên trình duyệt */
     try { const db = await getDb(); await db.command({ ping: 1 });
+      /* Đếm dữ liệu để kiểm tra sau mỗi lần cập nhật: số liệu phải giữ nguyên hoặc tăng. */
+      const names = ['staff', 'registrations', 'assignments', 'attendance', 'weeks', 'settings', 'managers'];
+      const counts = {};
+      await Promise.all(names.map(async n => { counts[n] = await db.collection(n).countDocuments({}); }));
       return res.status(200).end(JSON.stringify({ ok: true, db: 'connected',
+        database: db.databaseName, cluster: (CFG.mongoUri().split('@')[1] || '').split('/')[0],
+        version: (process.env.VERCEL_GIT_COMMIT_SHA || 'local').slice(0, 7), counts,
         googleLogin: !!googleClientId(), ownerEmails: ownerEmails().length,
         ownerPassword: !!CFG.ownerPassword() })); }
     catch (e) { console.error('health', e); return res.status(500).end(JSON.stringify({ ok: false, error: explainError(e), detail: String(e && e.message || '').slice(0, 200) })); }
@@ -499,7 +531,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const db = await getDb();
-    const ip = String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim().slice(0, 64);
+    /* Vercel ghi x-real-ip / x-forwarded-for bằng IP thật của khách – không giả mạo được */
+    const ip = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim().slice(0, 64);
     const ctx = { user: await currentUser(db, token), ip };
     let fn;
     if (Object.prototype.hasOwnProperty.call(PUBLIC, fnName)) fn = PUBLIC[fnName];
@@ -508,7 +541,7 @@ module.exports = async function handler(req, res) {
       fn = ADMIN[fnName];
     } else if (Object.prototype.hasOwnProperty.call(OWNER, fnName)) {
       if (!ctx.user) throw new AuthError('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
-      if (ctx.user.role !== 'owner') fail('Chỉ chủ quán mới quản lý được danh sách người quản lý.');
+      if (ctx.user.role !== 'owner') fail('Chỉ chủ quán mới làm được việc này (người quản lý, lương).');
       fn = OWNER[fnName];
     } else fail('Yêu cầu không hợp lệ.');
     const result = await fn(db, ctx, ...args);

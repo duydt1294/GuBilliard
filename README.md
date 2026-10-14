@@ -94,7 +94,8 @@ Người làm 2 ca liền nhau (vd Ca 1 + Ca 2) được gộp thành một khun
 - Mở link trong Zalo/Facebook: Google chặn đăng nhập trong trình duyệt nhúng → bấm **⋯ → Mở bằng trình duyệt** (app có nhắc).
 - Thêm/bớt Gmail chủ quán: sửa `OWNER_EMAILS` trong `config.js` rồi push.
 - Đổi PIN hoặc xóa người quản lý: người đó bị đăng xuất ngay.
-- Nhập sai mật khẩu/PIN quá 8 lần trong 15 phút: tạm khóa đăng nhập từ máy đó.
+- Nhập sai mật khẩu/PIN quá 8 lần trong 15 phút: tạm khóa đăng nhập từ máy đó (đếm cả khi gửi hàng loạt cùng lúc); toàn hệ thống quá 60 lần sai cũng tạm khóa đăng nhập PIN – Gmail chủ quán vẫn vào được.
+- Chỉ **chủ quán** sửa được lương (từng người và mức mặc định); người quản lý chỉ xem.
 - Đổi `SESSION_SECRET` trong `config.js`: đăng xuất tất cả mọi người.
 
 ## Chạy thử trên máy
