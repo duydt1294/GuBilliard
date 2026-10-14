@@ -9,6 +9,10 @@ const { getDb } = require('../lib/db');
 const A = require('../lib/auth');
 const G = require('../lib/google');
 
+/** Client ID "Sign in with Google" của quán (công khai, không phải bí mật). Đổi bằng biến GOOGLE_CLIENT_ID. */
+const DEFAULT_GOOGLE_CLIENT_ID = '55981277953-70kkk72b2m31ku2d5n3p64t70c82gdkm.apps.googleusercontent.com';
+const googleClientId = () => String(process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
+
 /** Gmail có quyền CHỦ QUÁN. Đổi bằng biến môi trường OWNER_EMAILS (phân cách bằng dấu phẩy). */
 const DEFAULT_OWNER_EMAILS = ['duydemo1294@gmail.com', 'hangochien2023@gmail.com'];
 function ownerEmails() {
@@ -135,7 +139,7 @@ const PUBLIC = {
       staff: active.map(x => ({ id: x.id, name: x.name })),
       week: null,
       me: ctx.user ? { name: ctx.user.name, role: ctx.user.role, email: ctx.user.email || '' } : null,
-      googleClientId: process.env.GOOGLE_CLIENT_ID || ''
+      googleClientId: googleClientId()
     };
     if (staffId && /^\d{4}-\d{2}-\d{2}$/.test(String(week || '')) && active.some(x => x.id === String(staffId))) {
       out.week = await getStaffWeek(db, staffId, week);
@@ -166,7 +170,7 @@ const PUBLIC = {
 
   async googleLogin(db, ctx, credential, week) {
     let g;
-    try { g = await G.verifyIdToken(credential, process.env.GOOGLE_CLIENT_ID); }
+    try { g = await G.verifyIdToken(credential, googleClientId()); }
     catch (e) { if (e.badToken) fail(e.message); throw e; }
     if (!ownerEmails().includes(g.email)) fail(`Gmail ${g.email} chưa được cấp quyền chủ quán.`);
     const user = { role: 'owner', via: 'google', sub: g.email, name: g.name };
@@ -341,7 +345,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {                                /* kiểm tra nhanh: mở /api trên trình duyệt */
     try { const db = await getDb(); await db.command({ ping: 1 });
       return res.status(200).end(JSON.stringify({ ok: true, db: 'connected',
-        googleLogin: !!process.env.GOOGLE_CLIENT_ID, ownerEmails: ownerEmails().length,
+        googleLogin: !!googleClientId(), ownerEmails: ownerEmails().length,
         ownerPassword: !!process.env.OWNER_PASSWORD })); }
     catch (e) { return res.status(500).end(JSON.stringify({ ok: false, error: e.message })); }
   }

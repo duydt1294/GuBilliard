@@ -33,7 +33,9 @@ Collection trong MongoDB (tự tạo khi dùng): `staff`, `registrations`, `assi
 
 ### 2. Google Client ID (cho đăng nhập Gmail)
 
-Làm sau khi đã có link Vercel (bước 3), rồi quay lại thêm biến `GOOGLE_CLIENT_ID`.
+**Đã cài sẵn** Client ID `55981277953-70kkk72b2m31ku2d5n3p64t70c82gdkm.apps.googleusercontent.com` trong `api/index.js` – không cần đặt biến. Chỉ cần vào Google Cloud → **Clients** → client này → thêm link Vercel vào *Authorized JavaScript origins* (xem mục 4 dưới đây). App **không dùng Client secret**.
+
+Cách tạo Client ID mới (nếu muốn đổi, rồi đặt biến `GOOGLE_CLIENT_ID` trên Vercel):
 
 1. Vào [console.cloud.google.com](https://console.cloud.google.com) bằng Gmail chủ quán → tạo project mới (vd *GuBilliard*).
 2. **APIs & Services → OAuth consent screen** (giao diện mới: **Google Auth Platform → Branding**): chọn **External**, điền tên ứng dụng *Lịch ca Gu Billiard*, email hỗ trợ → Lưu.
@@ -56,7 +58,7 @@ Thêm/bớt Gmail chủ quán: đặt biến `OWNER_EMAILS` trên Vercel, ví d�
    |---|---|
    | `MONGODB_URI` | Chuỗi kết nối ở bước 1 |
    | `SESSION_SECRET` | Một dãy ký tự ngẫu nhiên dài (vd 40 ký tự) |
-   | `GOOGLE_CLIENT_ID` | Client ID ở bước 2 (có thể thêm sau) |
+   | `GOOGLE_CLIENT_ID` | *Không bắt buộc* – đã cài sẵn Client ID của quán |
    | `OWNER_PASSWORD` | Mật khẩu chủ quán dự phòng (tự đặt, dài, khó đoán) |
    | `OWNER_EMAILS` | *Không bắt buộc* – mặc định 2 Gmail ở trên |
 
