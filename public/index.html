@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e5a3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lịch ca">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<title>Lịch ca</title>
+<style>
+:root{--g:#0e5a3a;--g2:#14804f;--gl:#e6f4ec;--r:#d93025;--rl:#fde8e6;--o:#c76400;--ol:#fef1de;--bl:#e8f0fe;--b:#174ea6;--bg:#f2f5f3;--card:#fff;--tx:#1b2320;--mu:#66736d;--bd:#dde4e0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:16px;line-height:1.4}
+/* 16px cho ô nhập để iPhone không tự phóng to khi chạm */
+button,select,input,textarea{font:inherit;font-size:16px;touch-action:manipulation}
+header{background:var(--g);color:#fff;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.18)}
+.hd{max-width:600px;margin:0 auto;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:8px}
+.hd .ttl{flex:1;min-width:0}
+header h1{font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .sub{font-size:12px;opacity:.85}
+.icon{background:rgba(255,255,255,.16);color:#fff;width:42px;height:42px;min-height:0;padding:0;border-radius:50%;font-size:20px;flex:none}
+main{max-width:600px;margin:0 auto;padding:12px 12px calc(110px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+h3{margin:0 0 6px;font-size:17px}
+label{font-weight:600;display:block;margin:0 0 6px}
+select,input,textarea{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:#fff;color:var(--tx);min-height:46px}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mu) 50%),linear-gradient(135deg,var(--mu) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:34px}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--g2);outline-offset:0;border-color:var(--g2)}
+button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;min-height:46px;background:var(--g2);color:#fff;font-weight:600}
+button:active{transform:scale(.97)}
+button.sec{background:#fff;color:var(--g);border:1px solid var(--g2)}
+button.warn{background:var(--o)}
+button.danger{background:#fff;color:var(--r);border:1px solid var(--r)}
+button.link{background:none;color:var(--mu);text-decoration:underline;font-weight:400;min-height:40px}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.full{width:100%}
+.btnlink{display:block;text-align:center;background:var(--g2);color:#fff;border-radius:12px;padding:13px 14px;font-weight:600;text-decoration:none}
+.hint{color:var(--mu);font-size:14px;margin:2px 0 10px}
+.mu{color:var(--mu);font-weight:400}
+.who{display:flex;align-items:center;gap:10px}
+.who .av{font-size:26px;flex:none}
+.weeknav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.weeknav button{width:48px;min-height:48px;padding:0;font-size:22px;background:#fff;color:var(--g);border:1px solid var(--bd);flex:none}
+.weeknav .wl{flex:1;text-align:center;font-weight:700;font-size:16px}
+.weeknav .wl small{display:block;font-weight:500;color:var(--g2);font-size:13px}
+.status{border-radius:12px;padding:11px 12px;margin-bottom:12px;font-weight:600;font-size:15px}
+.st-MO{background:var(--gl);color:var(--g)}
+.st-KHOA{background:var(--ol);color:#8a4b00}
+.st-CONG_BO{background:var(--bl);color:var(--b)}
+/* Lưới đăng ký của nhân viên */
+table.reg{width:100%;border-collapse:separate;border-spacing:6px;margin:0 -6px;width:calc(100% + 12px)}
+table.reg th{font-size:14px;font-weight:700;padding:0 2px}
+table.reg th small{display:block;font-weight:400;color:var(--mu);font-size:11px;line-height:1.2}
+table.reg td.d{font-weight:700;font-size:14px;white-space:nowrap;width:58px;cursor:pointer;user-select:none}
+table.reg td.d small{display:block;font-weight:400;color:var(--mu);font-size:12px}
+.cell{width:100%;height:54px;border-radius:12px;background:#f1f4f2;border:2px dashed #c3cdc8;color:#9aa6a0;font-size:22px;padding:0;min-height:0}
+.cell.on{background:var(--g2);border:2px solid var(--g2);color:#fff}
+.cell:disabled{opacity:1;cursor:default}
+.cell.on:disabled{background:#86bb9f;border-color:#86bb9f}
+.myl{list-style:none;padding:0;margin:0}
+.myl li{padding:12px;border-radius:12px;background:var(--bl);color:var(--b);margin-bottom:8px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.myl li span{font-weight:500;white-space:nowrap}
+details.card>summary{font-weight:700;font-size:16px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:28px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:'▾';color:var(--mu);transition:transform .2s}
+details.card[open]>summary::after{transform:rotate(180deg)}
+details.card[open]>summary{margin-bottom:10px}
+table.sched{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+table.sched th,table.sched td{border:1px solid var(--bd);padding:6px 5px;vertical-align:top;text-align:left;word-wrap:break-word}
+table.sched th{background:#f6f8f7;font-size:13px}
+table.sched tr>th:first-child{width:52px}
+.me{font-weight:700;color:var(--g);background:var(--gl);border-radius:4px;padding:0 3px}
+/* Chủ quán */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#e3e9e6;padding:4px;border-radius:14px;margin-bottom:12px}
+.tabs button{background:transparent;color:var(--g);min-height:42px;padding:6px 4px;font-size:15px;border-radius:10px}
+.tabs button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts .wide{grid-column:1/-1}
+.acts button{font-size:15px;padding:8px 6px;white-space:nowrap}
+table.ov{width:100%;border-collapse:separate;border-spacing:5px;margin:0 -5px;width:calc(100% + 10px)}
+table.ov th{font-size:13px;font-weight:700}
+table.ov tr th:first-child{width:52px;text-align:left;font-size:14px;padding-left:4px;border-radius:10px}
+table.ov th small{display:block;font-weight:400;color:var(--mu);font-size:11px}
+table.ov tr.sel th:first-child{background:var(--g);color:#fff}
+table.ov tr.sel th:first-child small{color:#d6eadf}
+.ovc{width:100%;min-height:50px;padding:4px 2px;border-radius:10px;font-size:16px;font-weight:700;line-height:1.15;border:2px solid transparent}
+.ovc small{display:block;font-size:11px;font-weight:500;opacity:.85}
+.ovc.ok{background:var(--gl);color:var(--g)}
+.ovc.lack{background:var(--rl);color:var(--r)}
+.ovc.over{background:var(--ol);color:var(--o)}
+.ovc.zero{background:#f1f4f2;color:var(--mu)}
+tr.sel .ovc{border-color:var(--g)}
+#dayCard{scroll-margin-top:72px;padding:0;overflow:hidden}
+.dnav{display:flex;align-items:center;background:var(--g);color:#fff}
+.dnav button{background:transparent;color:#fff;width:54px;font-size:24px;padding:0;border-radius:0;flex:none}
+.dnav div{flex:1;text-align:center;font-size:17px}
+.slot{padding:12px 14px;border-top:1px solid var(--bd);border-left:6px solid #c3cdc8}
+.slot.ok{border-left-color:var(--g2)}
+.slot.lack{border-left-color:var(--r);background:#fffafa}
+.slot.over{border-left-color:var(--o)}
+.sloth{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px}
+.sloth b{font-size:16px}
+.cnt{font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;white-space:nowrap}
+.ok .cnt{background:var(--gl);color:var(--g)}
+.lack .cnt{background:var(--rl);color:var(--r)}
+.over .cnt{background:var(--ol);color:var(--o)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip{min-height:42px;padding:8px 14px;border-radius:22px;border:1.5px solid #b9c5bf;background:#fff;color:var(--tx);font-weight:600;font-size:15px}
+.chip.on{background:var(--g2);color:#fff;border-color:var(--g2)}
+.chip.extra{background:#3c6e57;border:1.5px dashed #a8d5bd}
+.empty{color:var(--mu);font-size:14px;font-style:italic;padding:8px 0}
+.slot select.add{font-size:16px;color:var(--mu);min-height:42px;padding-top:8px;padding-bottom:8px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:12px;color:var(--mu);margin-top:10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+table.sum{width:100%;border-collapse:collapse;font-size:15px}
+table.sum th,table.sum td{border-bottom:1px solid var(--bd);padding:9px 4px;text-align:left}
+table.sum th{font-size:13px;color:var(--mu);font-weight:600}
+table.sum .n{text-align:center;width:62px}
+.warnt{font-size:12px;color:var(--o);display:block}
+.nvi{display:flex;align-items:center;gap:12px;width:100%;background:#fff;color:var(--tx);border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:10px 2px;min-height:62px;text-align:left;font-weight:400}
+.nvi:last-child{border-bottom:0}
+.nvi .avt{width:40px;height:40px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none}
+.nvi .tx{flex:1;min-width:0}
+.nvi .tx b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nvi .tx small{color:var(--mu);font-size:13px}
+.nvi .go{color:#b0bab5;font-size:22px}
+.nvi.off .avt{background:#eceeed;color:#9aa6a0}
+.nvi.off b{color:var(--mu)}
+.badge{font-size:12px;padding:3px 9px;border-radius:20px;background:#eceeed;color:var(--mu);white-space:nowrap}
+.grp{font-size:13px;font-weight:700;color:var(--mu);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.3px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#e3e9e6;padding:4px;border-radius:12px}
+.seg button{background:transparent;color:var(--g);min-height:42px}
+.seg button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg button[data-v="0"].act{color:var(--mu)}
+#nvModal label{margin-top:12px}
+.mgr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.mgr .tx{flex:1;min-width:0}.mgr .tx b{display:block}.mgr .tx small{color:var(--mu);font-size:13px}
+.mgr button{min-height:40px;padding:0 12px;font-size:14px}
+.shrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.shrow .tm{grid-column:1/-1}
+.shrow small{grid-column:1/-1;color:var(--mu);font-weight:600;font-size:13px}
+.row2{display:flex;gap:8px}
+.row2>*{flex:1}
+/* Thanh cố định dưới */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:9;background:#fff;border-top:1px solid var(--bd);box-shadow:0 -3px 14px rgba(0,0,0,.08);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.bar .in{max-width:600px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.bar .info{flex:1;font-size:14px;color:var(--mu);min-width:0;line-height:1.3}
+.bar .info b{color:var(--tx);font-size:16px}
+.bar.dirty .info .st{color:var(--o);font-weight:700}
+.bar button{min-height:50px;padding:0 18px}
+.bar.dirty #btnSave{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(20,128,79,.45)}50%{box-shadow:0 0 0 7px rgba(20,128,79,0)}}
+.toast{position:fixed;left:12px;right:12px;margin:0 auto;max-width:480px;bottom:calc(88px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:12px 16px;border-radius:12px;z-index:60;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.25);text-align:center}
+.toast.err{background:var(--r)}
+.loading{position:fixed;inset:0;background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;z-index:50}
+.spin{width:42px;height:42px;border:4px solid var(--gl);border-top-color:var(--g2);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+.modal .sheet{background:#fff;width:100%;max-width:600px;border-radius:18px 18px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+.modal textarea{min-height:38vh;font-size:14px}
+#askModal{z-index:45}
+#askMsg{font-size:16px;margin:4px 0 16px;white-space:pre-line}
+.foot{text-align:center;margin:18px 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <div class="ttl">
+      <h1>🎱 <span id="shopName">Lịch ca</span></h1>
+      <div class="sub" id="hdrSub">Đăng ký & xem lịch ca</div>
+    </div>
+    <button class="icon" id="btnRefresh" aria-label="Tải lại dữ liệu">↻</button>
+  </div>
+</header>
+
+<main>
+  <div class="card" id="bootErr" hidden>
+    <h3>Không tải được dữ liệu</h3>
+    <p class="hint" id="bootErrMsg">Kiểm tra mạng rồi thử lại.</p>
+    <button class="full" id="btnRetry">Thử lại</button>
+  </div>
+
+  <!-- ============ NHÂN VIÊN ============ -->
+  <section id="v-staff">
+    <div class="card who">
+      <span class="av">👤</span>
+      <select id="staffSel" aria-label="Bạn là ai?"></select>
+    </div>
+
+    <div id="staffBody" hidden>
+      <div id="stWeek" class="weeknav"></div>
+      <div id="stStatus" class="status"></div>
+      <div id="myShifts" class="card" hidden></div>
+      <div class="card">
+        <h3 id="regTitle">Đăng ký ca có thể làm</h3>
+        <p class="hint" id="regHint">Chạm ô để chọn ca. Chạm <b>tên ngày</b> để chọn cả ngày.</p>
+        <div id="regGrid"></div>
+        <label for="note" style="margin-top:12px">Ghi chú cho chủ quán</label>
+        <textarea id="note" maxlength="300" placeholder="Không bắt buộc. Vd: Thứ 4 em chỉ làm được đến 21h"></textarea>
+        <p class="hint" id="saveInfo" style="margin:8px 0 0"></p>
+      </div>
+      <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
+    </div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.0</div></div>
+  </section>
+
+  <!-- ============ ĐĂNG NHẬP ============ -->
+  <section id="v-login" hidden>
+    <div class="card" style="margin-top:24px">
+      <h3>🔑 Đăng nhập quản lý</h3>
+      <p class="hint">Chủ quán nhập <b>mật khẩu</b>. Người quản lý nhập <b>mã PIN</b> do chủ quán cấp.</p>
+      <input id="pw" type="password" placeholder="Mật khẩu hoặc mã PIN" autocomplete="current-password" enterkeyhint="go">
+      <button class="full" id="btnLogin" style="margin-top:10px">Đăng nhập</button>
+      <button class="link full" id="btnBack1" style="margin-top:6px">← Về trang nhân viên</button>
+    </div>
+  </section>
+
+  <!-- ============ CHỦ QUÁN ============ -->
+  <section id="v-admin" hidden>
+    <div class="tabs">
+      <button data-tab="xep" class="act">📅 Xếp ca</button>
+      <button data-tab="nv">👥 Nhân viên</button>
+      <button data-tab="cd">⚙️ Cài đặt</button>
+    </div>
+
+    <div id="t-xep">
+      <div id="adWeek" class="weeknav"></div>
+      <div class="card">
+        <div id="adStatus" class="status"></div>
+        <div class="acts" id="adActions"></div>
+      </div>
+      <div class="card">
+        <h3>Tổng quan tuần</h3>
+        <p class="hint" style="margin-bottom:4px">Số đã xếp / số cần · chạm để xem ngày</p>
+        <div id="overview"></div>
+        <div class="legend">
+          <span><i style="background:var(--gl);border:1px solid var(--g2)"></i>Đủ người</span>
+          <span><i style="background:var(--rl);border:1px solid var(--r)"></i>Thiếu người</span>
+          <span><i style="background:var(--ol);border:1px solid var(--o)"></i>Dư người</span>
+          <span><i style="background:#f1f4f2;border:1px solid #c3cdc8"></i>Không cần người</span>
+        </div>
+      </div>
+      <div class="card" id="dayCard"></div>
+      <p class="hint" style="text-align:center">Chạm tên để <b>xếp / bỏ xếp</b>. Tên viền đứt là người không đăng ký ca đó.</p>
+      <details class="card" id="notesCard" hidden><summary>📝 Ghi chú của nhân viên</summary><div id="notes"></div></details>
+      <details class="card"><summary id="sumTitle">📊 Tổng hợp theo nhân viên</summary><div id="summary"></div></details>
+    </div>
+
+    <div id="t-nv" hidden>
+      <button class="full" id="btnAddNv" style="margin-bottom:12px">+ Thêm nhân viên</button>
+      <div class="card">
+        <h3 id="nvTitle">Danh sách</h3>
+        <input id="nvSearch" type="search" placeholder="🔍 Tìm theo tên hoặc SĐT" autocomplete="off" style="margin:6px 0 4px">
+        <div id="nvList"></div>
+        <p class="hint" style="margin:10px 0 0">Chạm vào một người để <b>sửa</b> hoặc <b>xóa</b>.</p>
+      </div>
+    </div>
+
+    <div id="t-cd" hidden>
+      <div class="card">
+        <h3>Quán & ca làm</h3>
+        <label for="cfShop">Tên quán</label>
+        <input id="cfShop">
+        <div id="cfShifts"></div>
+        <button class="full" id="btnSaveCf" style="margin-top:10px">💾 Lưu cài đặt</button>
+      </div>
+      <div class="card">
+        <h3>Link gửi nhân viên</h3>
+        <p class="hint">Gửi vào nhóm Zalo. Nhân viên mở là dùng, không cần đăng nhập. Người quản lý dùng cùng link này rồi bấm “Chủ quán đăng nhập”.</p>
+        <input id="cfLink" readonly>
+        <button class="sec full" id="btnCopyLink" style="margin-top:8px">📋 Sao chép link</button>
+      </div>
+      <div class="card" id="mgrCard">
+        <h3>Người quản lý</h3>
+        <p class="hint" id="mgrHint">Mỗi người một mã PIN riêng. Đổi PIN hoặc xóa là người đó bị đăng xuất ngay.</p>
+        <div id="mgrList"></div>
+        <div id="mgrForm" class="addnv" style="margin-top:10px">
+          <input id="mgrName" placeholder="Tên người quản lý (vd: Anh Tú)" autocomplete="off" maxlength="40">
+          <input id="mgrPin" placeholder="Mã PIN 4–8 số" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
+          <div class="row2"><button class="sec" id="mgrCancel" hidden>Hủy</button><button id="mgrSave">+ Thêm người quản lý</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Tài khoản</h3>
+        <p class="hint" style="margin:0 0 10px">Đang đăng nhập: <b id="cfMe"></b></p>
+        <button class="danger full" id="btnLogout">Đăng xuất</button>
+      </div>
+    </div>
+    <div class="foot"><button class="link" id="btnBack2">← Xem trang nhân viên</button></div>
+  </section>
+</main>
+
+<!-- Thanh lưu cố định dưới -->
+<div class="bar" id="staffBar" hidden>
+  <div class="in">
+    <div class="info" id="staffBarInfo"></div>
+    <button id="btnSave">💾 Lưu đăng ký</button>
+  </div>
+</div>
+<div class="bar dirty" id="saveBar" hidden>
+  <div class="in">
+    <button class="sec" id="btnUndo">Hoàn tác</button>
+    <button id="btnSaveXep" style="flex:1">💾 Lưu xếp ca</button>
+  </div>
+</div>
+
+<div class="modal" id="zaloModal" hidden>
+  <div class="sheet">
+    <h3>💬 Tin nhắn gửi nhóm Zalo</h3>
+    <p class="hint">Sao chép rồi dán vào nhóm Zalo của quán.</p>
+    <textarea id="zaloText" readonly></textarea>
+    <div class="row2" style="margin-top:10px">
+      <button id="btnCopyZalo">📋 Sao chép</button>
+      <button class="sec" id="btnShareZalo" hidden>📤 Chia sẻ</button>
+    </div>
+    <button class="link full" id="btnCloseZalo">Đóng</button>
+  </div>
+</div>
+
+<div class="modal" id="nvModal" hidden>
+  <div class="sheet">
+    <h3 id="nvmTitle">Thêm nhân viên</h3>
+    <label for="nvmName">Họ tên</label>
+    <input id="nvmName" placeholder="Vd: Nguyễn Minh Anh" autocomplete="off" enterkeyhint="next">
+    <label for="nvmPhone">SĐT / Zalo <span class="mu">(không bắt buộc)</span></label>
+    <input id="nvmPhone" type="tel" inputmode="tel" placeholder="Vd: 0901234567" autocomplete="off" enterkeyhint="done">
+    <div id="nvmStatusWrap">
+      <label>Trạng thái</label>
+      <div class="seg" id="nvmStatus"><button data-v="1">Đang làm</button><button data-v="0">Đã nghỉ</button></div>
+      <p class="hint" style="margin:6px 0 0">"Đã nghỉ": ẩn tên khỏi danh sách chọn, vẫn giữ lịch sử. Có thể chuyển lại "Đang làm" bất cứ lúc nào.</p>
+    </div>
+    <div class="row2" style="margin-top:16px">
+      <button class="sec" id="nvmCancel">Hủy</button>
+      <button id="nvmSave">💾 Lưu</button>
+    </div>
+    <div id="nvmDelWrap" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)">
+      <button class="danger full" id="nvmDelete">🗑 Xóa nhân viên</button>
+      <p class="hint" style="margin:6px 0 0">Xóa hẳn khỏi danh sách và bỏ các ca đăng ký / đã xếp <b>từ tuần này trở đi</b>. Lịch sử các tuần trước vẫn giữ.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="askModal" hidden>
+  <div class="sheet">
+    <div id="askMsg"></div>
+    <div class="row2">
+      <button class="sec" id="askCancel">Hủy</button>
+      <button id="askOk">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading" id="loading" hidden><div class="spin"></div></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const SHORT = ['T2','T3','T4','T5','T6','T7'];
+const S = { init:null, view:'staff', staffId:'', week:'', slots:new Set(), st:null, regDirty:false,
+            aw:null, awWeek:'', asg:{}, dirty:false, adminWeek:'', selDay:0, tab:'xep' };
+
+/* ================= TIỆN ÍCH ================= */
+let loadingN = 0;
+function loading(on){ loadingN = Math.max(0, loadingN + (on ? 1 : -1)); $('#loading').hidden = loadingN === 0; }
+function store(k,v){ try { localStorage.setItem('bida_'+k, v); } catch(e){} }
+function load(k){ try { return localStorage.getItem('bida_'+k) || ''; } catch(e){ return ''; } }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+let toastT;
+function toast(msg, err){
+  let t = $('#toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
+  t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, err ? 5000 : 2500);
+}
+
+/** Gọi API phía máy chủ (Vercel). Lỗi → hiện thông báo và trả về null. */
+async function call(fn, ...args){
+  loading(true);
+  try {
+    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 25000);
+    const headers = { 'Content-Type': 'application/json' };
+    if (S.token) headers.Authorization = 'Bearer ' + S.token;
+    const r = await fetch('/api', { method: 'POST', headers, body: JSON.stringify({ fn, args }), signal: ctrl.signal });
+    clearTimeout(t);
+    let data = null; try { data = await r.json(); } catch (e) {}
+    if (r.ok && data && data.ok) return data.result;
+    let m = (data && data.error) || ('Lỗi máy chủ (' + r.status + ')');
+    if (m.indexOf('AUTH:') === 0) {
+      m = m.slice(5).trim();
+      setToken(''); S.me = null; S.dirty = false; updAdminLink(); show('login');
+    }
+    S.lastErr = m; toast(m, true);
+    return null;
+  } catch (e) {
+    const m = e && e.name === 'AbortError' ? 'Máy chủ phản hồi chậm, vui lòng thử lại.' : 'Mất kết nối mạng, vui lòng thử lại.';
+    S.lastErr = m; toast(m, true);
+    return null;
+  } finally { loading(false); }
+}
+function setToken(t){ S.token = t || ''; store('tk', S.token); }
+
+/** Hộp thoại xác nhận (thay cho confirm() – đẹp và ổn định hơn trên điện thoại). */
+function ask(msg, okText, cancelText){
+  return new Promise(res => {
+    $('#askMsg').textContent = msg;
+    $('#askOk').textContent = okText || 'Đồng ý';
+    $('#askCancel').textContent = cancelText || 'Hủy';
+    $('#askModal').hidden = false;
+    const done = v => { $('#askModal').hidden = true; res(v); };
+    $('#askOk').onclick = () => done(true);
+    $('#askCancel').onclick = () => done(false);
+    $('#askModal').onclick = e => { if (e.target.id === 'askModal') done(false); };
+  });
+}
+const askDiscard = () => ask('Bạn có thay đổi chưa lưu. Bỏ các thay đổi này?', 'Bỏ thay đổi', 'Ở lại');
+
+/** Sao chép – có cách dự phòng cho iPhone (Safari không cho chọn ô chỉ-đọc). */
+async function copyText(el){
+  const v = el.value;
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(v); toast('Đã sao chép ✓'); return; }
+  } catch(e) {}
+  const ro = el.readOnly; el.readOnly = false;
+  el.focus(); el.select(); try { el.setSelectionRange(0, v.length); } catch(e) {}
+  let ok = false; try { ok = document.execCommand('copy'); } catch(e) {}
+  el.readOnly = ro; el.blur();
+  toast(ok ? 'Đã sao chép ✓' : 'Nhấn giữ vào ô chữ → Chọn tất cả → Sao chép', !ok);
+}
+
+/* ================= NGÀY THÁNG ================= */
+function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fromIso(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function monday(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay()+6)%7); return x; }
+function addDays(s,n){ const d = fromIso(s); d.setDate(d.getDate()+n); return iso(d); }
+function dm(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
+function dayDate(week,d){ return dm(fromIso(addDays(week,d))); }
+function weekLabel(w){ const a = fromIso(w), b = fromIso(addDays(w,5)); return dm(a)+' – '+dm(b)+'/'+b.getFullYear(); }
+function weekDiff(w){ return Math.round((fromIso(w) - monday(new Date())) / 864e5 / 7); }
+function relTag(w){
+  const d = weekDiff(w);
+  return {0:'Tuần này', 1:'Tuần sau', '-1':'Tuần trước'}[d] || (d > 0 ? d+' tuần nữa' : (-d)+' tuần trước');
+}
+function nextWeek(){ return addDays(iso(monday(new Date())), 7); }
+function todayIdx(){ const w = (new Date().getDay()+6)%7; return w > 5 ? 5 : w; }
+function renderWeekNav(sel, week, onMove){
+  const el = $(sel);
+  el.innerHTML = `<button data-m="-1" aria-label="Tuần trước">‹</button>
+    <div class="wl">${weekLabel(week)}<small>${relTag(week)}</small></div>
+    <button data-m="1" aria-label="Tuần sau">›</button>`;
+  el.querySelectorAll('button').forEach(b => b.onclick = () => onMove(Number(b.dataset.m)));
+}
+
+/* ================= ĐIỀU HƯỚNG ================= */
+function show(v){
+  S.view = v;
+  ['staff','login','admin'].forEach(x => $('#v-'+x).hidden = x !== v);
+  updAdminLink();
+  $('#btnRefresh').hidden = v === 'login';
+  updBars();
+  window.scrollTo(0, 0);
+}
+function setShop(name){ $('#shopName').textContent = name; document.title = 'Lịch ca – ' + name; }
+
+function updBars(){
+  const st = S.st;
+  const staffOn = S.view === 'staff' && !!S.staffId && !!st && !$('#staffBody').hidden && st.status === 'MO';
+  $('#staffBar').hidden = !staffOn;
+  if (staffOn) {
+    $('#staffBar').classList.toggle('dirty', S.regDirty);
+    $('#staffBarInfo').innerHTML = `Đã chọn <b>${S.slots.size}</b> ca<br><span class="st">` +
+      (S.regDirty ? '● Chưa lưu' : (st.updated ? '✓ Đã gửi' : 'Chưa gửi đăng ký')) + '</span>';
+  }
+  $('#saveBar').hidden = !(S.view === 'admin' && S.tab === 'xep' && S.dirty);
+}
+
+/* ================= NHÂN VIÊN ================= */
+function fillStaffSel(){
+  $('#staffSel').innerHTML = '<option value="">— Chọn tên của bạn —</option>' +
+    S.init.staff.slice().sort((a,b) => a.name.localeCompare(b.name,'vi'))
+      .map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  $('#staffSel').value = S.init.staff.some(s => s.id === S.staffId) ? S.staffId : '';
+}
+
+$('#staffSel').onchange = async () => {
+  const v = $('#staffSel').value;
+  if (S.regDirty && !(await askDiscard())) { $('#staffSel').value = S.staffId; return; }
+  S.regDirty = false; S.staffId = v; store('staffId', v); S.st = null;
+  if (!v) { $('#staffBody').hidden = true; updBars(); return; }
+  loadStaffWeek();
+};
+
+let seqSt = 0;
+async function loadStaffWeek(){
+  renderStaffWeekNav();
+  const my = ++seqSt;
+  const r = await call('getStaffWeek', S.staffId, S.week);
+  if (my !== seqSt || !r) return;          /* bỏ kết quả cũ nếu đã bấm sang tuần khác */
+  S.st = r; S.slots = new Set(r.slots); S.regDirty = false;
+  renderStaff();
+}
+function renderStaffWeekNav(){
+  renderWeekNav('#stWeek', S.week, async d => {
+    if (S.regDirty && !(await askDiscard())) return;
+    S.regDirty = false; S.week = addDays(S.week, 7*d); loadStaffWeek();
+  });
+}
+
+function schedTable(week, map, meId){
+  const I = S.init;
+  let h = '<table class="sched"><tr><th></th>' +
+    I.shifts.map(s => `<th>${esc(s.name)}<br><span class="mu">${esc(s.time)}</span></th>`).join('') + '</tr>';
+  I.days.forEach((dn,d) => {
+    h += `<tr><th>${SHORT[d]}<br><span class="mu">${dayDate(week,d)}</span></th>` + I.shifts.map((_,s) => {
+      const a = map[d+'-'+s] || [];
+      return '<td>' + (a.length ? a.map(p => p.id === meId ? `<span class="me">${esc(p.name)}</span>` : esc(p.name)).join('<br>') : '<span class="mu">—</span>') + '</td>';
+    }).join('') + '</tr>';
+  });
+  return h + '</table>';
+}
+
+function renderStaff(){
+  const r = S.st, I = S.init, open = r.status === 'MO';
+  renderStaffWeekNav();
+  $('#staffBody').hidden = false;
+  $('#stStatus').className = 'status st-' + r.status;
+  $('#stStatus').textContent = {
+    MO: '🟢 Đang mở đăng ký – chọn ca rồi bấm Lưu',
+    KHOA: '🟠 Đã khóa đăng ký – chủ quán đang xếp ca',
+    CONG_BO: '🔵 Đã có lịch chính thức'
+  }[r.status];
+
+  if (r.schedule) {
+    const mine = [];
+    I.days.forEach((dn,d) => I.shifts.forEach((sh,s) => {
+      if ((r.schedule[d+'-'+s] || []).some(p => p.id === S.staffId))
+        mine.push(`<li>${dn} ${dayDate(S.week,d)} · ${esc(sh.name)}<span>${esc(sh.time)}</span></li>`);
+    }));
+    $('#myShifts').hidden = false;
+    $('#myShifts').innerHTML = `<h3>⭐ Ca của bạn: ${mine.length} ca</h3>` +
+      (mine.length ? `<ul class="myl">${mine.join('')}</ul>` : '<p class="hint" style="margin:0">Tuần này bạn không có ca nào.</p>');
+    $('#fullSched').hidden = false;
+    $('#fullSchedBody').innerHTML = schedTable(S.week, r.schedule, S.staffId);
+  } else {
+    $('#myShifts').hidden = true; $('#fullSched').hidden = true;
+  }
+
+  $('#regTitle').textContent = open ? 'Đăng ký ca có thể làm' : 'Ca bạn đã đăng ký';
+  let h = '<table class="reg"><tr><th></th>' +
+    I.shifts.map(s => `<th>${esc(s.name)}<small>${esc(s.time)}</small></th>`).join('') + '</tr>';
+  I.days.forEach((dn,d) => {
+    h += `<tr><td class="d" data-d="${d}">${dn}<small>${dayDate(S.week,d)}</small></td>` + I.shifts.map((_,s) => {
+      const k = d+'-'+s, on = S.slots.has(k);
+      return `<td><button class="cell ${on?'on':''}" data-k="${k}" aria-pressed="${on}" ${open?'':'disabled'}>${on?'✓':'+'}</button></td>`;
+    }).join('') + '</tr>';
+  });
+  $('#regGrid').innerHTML = h + '</table>';
+  $('#regHint').hidden = !open;
+  $('#note').value = r.note; $('#note').disabled = !open;
+  $('#saveInfo').textContent = r.updated ? '✓ Đã gửi lúc ' + r.updated
+    : (open ? '' : (r.slots.length ? '' : 'Bạn không đăng ký ca nào tuần này.'));
+  updBars();
+}
+
+function setCell(k, on){
+  if (on) S.slots.add(k); else S.slots.delete(k);
+  const b = $(`#regGrid .cell[data-k="${k}"]`);
+  if (b) { b.classList.toggle('on', on); b.textContent = on ? '✓' : '+'; b.setAttribute('aria-pressed', on); }
+}
+$('#regGrid').addEventListener('click', e => {
+  if (!S.st || S.st.status !== 'MO') return;
+  const b = e.target.closest('.cell');
+  const td = e.target.closest('td.d');
+  if (b) setCell(b.dataset.k, !S.slots.has(b.dataset.k));
+  else if (td) {                               /* chạm tên ngày → chọn/bỏ cả ngày */
+    const d = td.dataset.d, keys = S.init.shifts.map((_,s) => d+'-'+s);
+    const allOn = keys.every(k => S.slots.has(k));
+    keys.forEach(k => setCell(k, !allOn));
+  } else return;
+  S.regDirty = true; updBars();
+});
+$('#note').addEventListener('input', () => { S.regDirty = true; updBars(); });
+
+$('#btnSave').onclick = async () => {
+  $('#note').blur();
+  const r = await call('saveRegistration', S.staffId, S.week, [...S.slots], $('#note').value);
+  if (!r) { loadStaffWeek(); return; }          /* vd: chủ quán vừa khóa → tải lại trạng thái mới */
+  S.st = r; S.slots = new Set(r.slots); S.regDirty = false; renderStaff();
+  toast('Đã lưu đăng ký ✓');
+};
+
+async function refreshStaff(){
+  const r = await call('getInit', S.staffId, S.week);
+  if (!r) return false;
+  S.init = r; S.me = r.me; setShop(r.shopName); fillStaffSel(); updAdminLink();
+  if (r.week) { S.st = r.week; S.slots = new Set(r.week.slots); S.regDirty = false; renderStaff(); }
+  else { S.staffId = $('#staffSel').value; S.st = null; $('#staffBody').hidden = true; updBars(); }
+  return true;
+}
+
+/* ================= CHỦ QUÁN ================= */
+$('#lnkAdmin').onclick = async () => {
+  if (S.regDirty && !(await askDiscard())) return;
+  S.regDirty = false;
+  if (!S.adminWeek) S.adminWeek = nextWeek();
+  if (S.me) { show('admin'); tab('xep'); loadAdmin(); }
+  else { show('login'); setTimeout(() => $('#pw').focus(), 80); }
+};
+function updAdminLink(){
+  $('#lnkAdmin').textContent = S.me ? '🛠 Vào trang quản lý' : '🔑 Chủ quán đăng nhập';
+  $('#hdrSub').textContent = S.view === 'staff' ? 'Đăng ký & xem lịch ca'
+    : (S.me ? 'Quản lý · ' + S.me.name : 'Trang quản lý ca');
+}
+
+async function doLogin(){
+  if (!$('#pw').value.trim()) { toast('Vui lòng nhập mật khẩu hoặc mã PIN', true); return; }
+  $('#pw').blur();
+  const r = await call('adminLogin', $('#pw').value, S.adminWeek);
+  if (!r) return;
+  setToken(r.token); S.me = r.me; S.mgrLoaded = false; $('#pw').value = '';
+  show('admin'); tab('xep');
+  if (r.data) applyAdmin(r.data); else loadAdmin();
+  toast('Xin chào ' + r.me.name);
+}
+$('#btnLogin').onclick = doLogin;
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+$('#btnLogout').onclick = async () => {
+  if (!(await ask('Đăng xuất khỏi trang quản lý trên máy này?', 'Đăng xuất'))) return;
+  if (S.dirty && !(await askDiscard())) return;
+  setToken(''); S.me = null; S.mgrLoaded = false; S.dirty = false; updAdminLink(); show('staff');
+  if (S.init) refreshStaff();
+};
+
+async function backToStaff(){
+  if (S.dirty && !(await askDiscard())) return;
+  S.dirty = false; show('staff');
+  if (S.init) refreshStaff();
+}
+$('#btnBack1').onclick = backToStaff;
+$('#btnBack2').onclick = backToStaff;
+
+
+function tab(name){
+  S.tab = name;
+  $$('.tabs button').forEach(b => b.classList.toggle('act', b.dataset.tab === name));
+  ['xep','nv','cd'].forEach(t => $('#t-'+t).hidden = t !== name);
+  updBars(); window.scrollTo(0, 0);
+}
+$$('.tabs button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+
+
+let seqAd = 0;
+async function loadAdmin(){
+  renderAdminWeekNav();
+  const my = ++seqAd;
+  const r = await call('getAdminWeek', S.adminWeek);
+  if (my !== seqAd || !r) return;
+  applyAdmin(r);
+}
+function renderAdminWeekNav(){
+  renderWeekNav('#adWeek', S.adminWeek, async d => {
+    if (S.dirty && !(await askDiscard())) return;
+    S.dirty = false; S.adminWeek = addDays(S.adminWeek, 7*d); loadAdmin();
+  });
+}
+
+function applyAdmin(r){
+  S.aw = r; S.asg = {};
+  Object.keys(r.assigned).forEach(k => S.asg[k] = r.assigned[k].map(p => p.id));
+  S.dirty = false;
+  if (S.awWeek !== S.adminWeek) { S.awWeek = S.adminWeek; S.selDay = weekDiff(S.adminWeek) === 0 ? todayIdx() : 0; }
+  S.init.shifts = r.settings.shifts; S.init.shopName = r.settings.shopName;
+  S.init.staff = r.staff.filter(s => s.active).map(s => ({ id:s.id, name:s.name }));
+  setShop(r.settings.shopName);
+  fillStaffSel(); renderAdmin(); renderStaffTab(); renderSettings();
+}
+
+function byIdMap(){ const m = {}; S.aw.staff.forEach(s => m[s.id] = s); return m; }
+function slotState(n, need){ return need === 0 && n === 0 ? 'zero' : (n < need ? 'lack' : (n > need ? 'over' : 'ok')); }
+
+function renderAdmin(){
+  renderAdminWeekNav();
+  const st = S.aw.status;
+  $('#adStatus').className = 'status st-' + st;
+  $('#adStatus').textContent = {
+    MO: '🟢 Đang mở đăng ký – nhân viên vẫn chọn ca được',
+    KHOA: '🟠 Đã khóa đăng ký – nhân viên không sửa được nữa',
+    CONG_BO: '🔵 Đã công bố – nhân viên đang xem lịch này'
+  }[st];
+  let b = '';
+  if (st === 'MO')   b += '<button class="warn" data-st="KHOA">🔒 Khóa đăng ký</button>';
+  if (st === 'KHOA') b += '<button class="sec" data-st="MO">🔓 Mở lại</button>';
+  if (st === 'CONG_BO') b += '<button class="sec" data-st="KHOA">↩️ Thu hồi lịch</button>';
+  b += '<button class="sec" data-act="auto">⚡ Xếp nhanh</button>';
+  b += st === 'CONG_BO'
+    ? '<button class="wide" data-act="zalo">💬 Gửi lịch qua Zalo</button>'
+    : '<button class="wide" data-st="CONG_BO">📢 Công bố lịch</button>';
+  $('#adActions').innerHTML = b;
+  renderOverview(); renderDay(); renderSummary(); renderNotes(); updBars();
+}
+$('#adActions').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.st) setStatus(b.dataset.st);
+  else if (b.dataset.act === 'auto') autoAssign();
+  else if (b.dataset.act === 'zalo') openZalo();
+});
+
+function renderOverview(){
+  const r = S.aw, I = S.init;
+  let h = '<table class="ov"><tr><th></th>' + I.shifts.map(s => `<th>${esc(s.name)}</th>`).join('') + '</tr>';
+  I.days.forEach((dn,d) => {
+    h += `<tr class="${d === S.selDay ? 'sel' : ''}"><th>${SHORT[d]}<small>${dayDate(S.adminWeek,d)}</small></th>` +
+      I.shifts.map((sh,s) => {
+        const k = d+'-'+s, n = (S.asg[k] || []).length, need = Number(sh.need) || 0, reg = (r.registered[k] || []).length;
+        return `<td><button class="ovc ${slotState(n,need)}" data-d="${d}">${n}/${need}<small>${reg} đăng ký</small></button></td>`;
+      }).join('') + '</tr>';
+  });
+  $('#overview').innerHTML = h + '</table>';
+}
+$('#overview').addEventListener('click', e => {
+  const b = e.target.closest('[data-d]'); if (!b) return;
+  S.selDay = Number(b.dataset.d);
+  renderOverview(); renderDay();
+  $('#dayCard').scrollIntoView({ behavior:'smooth', block:'start' });
+});
+
+function renderDay(){
+  const r = S.aw, I = S.init, byId = byIdMap(), d = S.selDay;
+  let h = `<div class="dnav"><button data-dd="-1" ${d === 0 ? 'disabled' : ''} aria-label="Ngày trước">‹</button>
+    <div><b>${I.days[d]}</b> · ${dayDate(S.adminWeek,d)}</div>
+    <button data-dd="1" ${d === I.days.length-1 ? 'disabled' : ''} aria-label="Ngày sau">›</button></div>`;
+  I.shifts.forEach((sh,s) => {
+    const k = d+'-'+s, reg = r.registered[k] || [], asg = S.asg[k] || [], need = Number(sh.need) || 0;
+    const regIds = reg.map(p => p.id);
+    let chips = reg.map(p => {
+      const on = asg.includes(p.id);
+      return `<button class="chip ${on?'on':''}" data-k="${k}" data-id="${esc(p.id)}" aria-pressed="${on}">${on?'✓ ':''}${esc(p.name)}</button>`;
+    }).join('');
+    chips += asg.filter(id => !regIds.includes(id)).map(id =>
+      `<button class="chip on extra" data-k="${k}" data-id="${esc(id)}" aria-label="Bỏ xếp">✓ ${esc(byId[id] ? byId[id].name : id)} ✕</button>`).join('');
+    const others = r.staff.filter(x => x.active && !regIds.includes(x.id) && !asg.includes(x.id))
+      .sort((a,b) => a.name.localeCompare(b.name,'vi'));
+    h += `<div class="slot ${slotState(asg.length, need)}">
+      <div class="sloth"><span><b>${esc(sh.name)}</b> <span class="mu">${esc(sh.time)}</span></span><span class="cnt">${asg.length}/${need} người</span></div>
+      <div class="chips">${chips || '<span class="empty">Chưa ai đăng ký ca này</span>'}</div>
+      ${others.length ? `<select class="add" data-k="${k}" aria-label="Thêm người"><option value="">+ Thêm người không đăng ký…</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : ''}
+    </div>`;
+  });
+  $('#dayCard').innerHTML = h;
+}
+
+function changed(){ S.dirty = true; renderOverview(); renderDay(); renderSummary(); updBars(); }
+
+$('#dayCard').addEventListener('click', e => {
+  const nav = e.target.closest('[data-dd]');
+  if (nav) { S.selDay = Math.max(0, Math.min(5, S.selDay + Number(nav.dataset.dd))); renderOverview(); renderDay(); return; }
+  const c = e.target.closest('.chip'); if (!c) return;
+  const k = c.dataset.k, id = c.dataset.id, a = S.asg[k] = S.asg[k] || [];
+  const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else a.push(id);
+  changed();
+});
+$('#dayCard').addEventListener('change', e => {
+  const s = e.target.closest('select.add'); if (!s || !s.value) return;
+  const a = S.asg[s.dataset.k] = S.asg[s.dataset.k] || [];
+  if (!a.includes(s.value)) a.push(s.value);
+  changed();
+});
+
+function renderSummary(){
+  const r = S.aw, reg = {}, asg = {}, dayCnt = {};
+  Object.keys(r.registered).forEach(k => r.registered[k].forEach(p => reg[p.id] = (reg[p.id] || 0) + 1));
+  Object.keys(S.asg).forEach(k => S.asg[k].forEach(id => {
+    asg[id] = (asg[id] || 0) + 1;
+    const dk = id + '|' + k.split('-')[0]; dayCnt[dk] = (dayCnt[dk] || 0) + 1;
+  }));
+  const list = r.staff.filter(s => s.active || reg[s.id] || asg[s.id]).sort((a,b) => a.name.localeCompare(b.name,'vi'));
+  const notReg = list.filter(s => s.active && !reg[s.id]).length;
+  $('#sumTitle').textContent = '📊 Tổng hợp theo nhân viên' + (notReg ? ` · ${notReg} chưa ĐK` : '');
+  if (!list.length) { $('#summary').innerHTML = '<p class="hint">Chưa có nhân viên. Thêm ở tab Nhân viên.</p>'; return; }
+  $('#summary').innerHTML = '<table class="sum"><tr><th>Nhân viên</th><th class="n">Đăng ký</th><th class="n">Được xếp</th></tr>' +
+    list.map(s => {
+      const multi = Object.keys(dayCnt).filter(k => k.startsWith(s.id + '|') && dayCnt[k] > 1).length;
+      let w = '';
+      if (!reg[s.id] && s.active) w += '<span class="warnt" style="color:var(--mu)">Chưa đăng ký</span>';
+      if (multi) w += `<span class="warnt">⚠️ ${multi} ngày làm 2+ ca</span>`;
+      return `<tr><td>${esc(s.name)}${s.active ? '' : ' <span class="mu">(nghỉ)</span>'}${w}</td><td class="n">${reg[s.id] || 0}</td><td class="n"><b>${asg[s.id] || 0}</b></td></tr>`;
+    }).join('') + '</table>';
+}
+
+function renderNotes(){
+  const n = S.aw.notes;
+  $('#notesCard').hidden = !n.length;
+  $('#notesCard').open = n.length > 0;
+  $('#notes').innerHTML = n.map(x => `<p style="margin:8px 0"><b>${esc(x.name)}:</b> ${esc(x.note)}</p>`).join('');
+}
+
+async function saveXep(){
+  const r = await call('saveAssignment', S.adminWeek, S.asg);
+  if (!r) return false;
+  applyAdmin(r); toast('Đã lưu xếp ca ✓');
+  return true;
+}
+$('#btnSaveXep').onclick = saveXep;
+$('#btnUndo').onclick = async () => {
+  if (await ask('Hoàn tác mọi thay đổi chưa lưu?', 'Hoàn tác')) applyAdmin(S.aw);
+};
+
+function countLack(){
+  let n = 0;
+  S.init.days.forEach((_,d) => S.init.shifts.forEach((sh,s) => { if ((S.asg[d+'-'+s] || []).length < (Number(sh.need) || 0)) n++; }));
+  return n;
+}
+
+async function setStatus(code){
+  if (code === 'CONG_BO') {
+    const lack = countLack();
+    const msg = lack ? `Còn ${lack} ca chưa đủ người.\nVẫn công bố lịch cho nhân viên?` : 'Công bố lịch tuần này cho nhân viên?';
+    if (!(await ask(msg, '📢 Công bố'))) return;
+  }
+  if (code === 'KHOA' && S.aw.status === 'CONG_BO' &&
+      !(await ask('Thu hồi lịch? Nhân viên sẽ không xem được lịch này nữa.', 'Thu hồi'))) return;
+  if (S.dirty && !(await saveXep())) return;
+  const r = await call('setWeekStatus', S.adminWeek, code);
+  if (!r) return;
+  applyAdmin(r);
+  toast({ MO:'Đã mở lại đăng ký', KHOA:'Đã khóa đăng ký', CONG_BO:'Đã công bố lịch ✓' }[code]);
+  if (code === 'CONG_BO') openZalo();
+}
+
+/** Tự điền ca còn trống từ danh sách đăng ký: ưu tiên người chưa có ca trong ngày, rồi người ít ca. */
+function autoAssign(){
+  const r = S.aw, I = S.init, cnt = {}, active = {};
+  r.staff.forEach(s => { if (s.active) active[s.id] = true; });
+  Object.values(S.asg).forEach(a => a.forEach(id => cnt[id] = (cnt[id] || 0) + 1));
+  let filled = 0;
+  I.days.forEach((_,d) => I.shifts.forEach((sh,s) => {
+    const k = d+'-'+s, a = S.asg[k] = S.asg[k] || [], need = Number(sh.need) || 0;
+    if (a.length >= need) return;
+    const busy = id => I.shifts.some((_,s2) => s2 !== s && (S.asg[d+'-'+s2] || []).includes(id)) ? 1 : 0;
+    const cand = (r.registered[k] || []).map(p => p.id).filter(id => active[id] && !a.includes(id))
+      .sort((x,y) => (busy(x) - busy(y)) || ((cnt[x] || 0) - (cnt[y] || 0)));
+    while (a.length < need && cand.length) { const id = cand.shift(); a.push(id); cnt[id] = (cnt[id] || 0) + 1; filled++; }
+  }));
+  if (filled) { changed(); toast(`Đã điền ${filled} lượt. Kiểm tra rồi bấm Lưu.`); }
+  else toast('Không còn ca trống nào có người đăng ký để điền.');
+}
+
+function openZalo(){
+  const I = S.init, byId = byIdMap();
+  let t = `📅 LỊCH CA ${I.shopName.toUpperCase()}\nTuần ${weekLabel(S.adminWeek)}\n`;
+  I.days.forEach((dn,d) => {
+    t += `\n▪️ ${dn} (${dayDate(S.adminWeek,d)})\n`;
+    I.shifts.forEach((sh,s) => {
+      const a = (S.asg[d+'-'+s] || []).map(id => byId[id] ? byId[id].name : id);
+      t += `   • ${sh.name} (${sh.time}): ${a.length ? a.join(', ') : '—'}\n`;
+    });
+  });
+  const link = location.origin;
+  if (link) t += `\n👉 Xem lịch & đăng ký ca: ${link}`;
+  $('#zaloText').value = t;
+  $('#btnShareZalo').hidden = !navigator.share;
+  $('#zaloModal').hidden = false;
+}
+$('#btnCopyZalo').onclick = () => copyText($('#zaloText'));
+$('#btnShareZalo').onclick = async () => {
+  try { await navigator.share({ text: $('#zaloText').value }); }
+  catch (e) { if (e && e.name !== 'AbortError') copyText($('#zaloText')); }
+};
+$('#btnCloseZalo').onclick = () => $('#zaloModal').hidden = true;
+$('#zaloModal').onclick = e => { if (e.target.id === 'zaloModal') $('#zaloModal').hidden = true; };
+
+/* ---------- Tab nhân viên: thêm / sửa / xóa ---------- */
+const initials = n => { const w = String(n).replace(/\(.*?\)/g, ' ').trim().split(/\s+/); return (w[w.length-1] || '?').charAt(0).toUpperCase(); };
+function renderStaffTab(){
+  const q = $('#nvSearch').value.trim().toLowerCase();
+  const all = S.aw.staff.slice().sort((a,b) => a.name.localeCompare(b.name,'vi'));
+  const on = all.filter(s => s.active), off = all.filter(s => !s.active);
+  $('#nvTitle').textContent = `Danh sách · ${on.length} đang làm` + (off.length ? ` · ${off.length} đã nghỉ` : '');
+  const match = s => !q || s.name.toLowerCase().includes(q) || s.phone.includes(q);
+  const item = s => `<button class="nvi ${s.active ? '' : 'off'}" data-id="${esc(s.id)}">
+      <span class="avt">${esc(initials(s.name))}</span>
+      <span class="tx"><b>${esc(s.name)}</b><small>${esc(s.phone) || 'Chưa có SĐT'}</small></span>
+      ${s.active ? '' : '<span class="badge">Đã nghỉ</span>'}<span class="go">›</span></button>`;
+  const a = on.filter(match), b = off.filter(match);
+  let h = a.map(item).join('');
+  if (b.length) h += '<div class="grp">Đã nghỉ</div>' + b.map(item).join('');
+  $('#nvList').innerHTML = h || `<p class="hint" style="margin:12px 0">${all.length ? 'Không tìm thấy.' : 'Chưa có nhân viên. Bấm “+ Thêm nhân viên”.'}</p>`;
+}
+$('#nvSearch').addEventListener('input', renderStaffTab);
+
+let nvEditing = null;                      /* null = thêm mới, còn lại = đối tượng nhân viên đang sửa */
+function setSeg(active){ $$('#nvmStatus button').forEach(b => b.classList.toggle('act', (b.dataset.v === '1') === active)); }
+function openNv(st){
+  nvEditing = st || null;
+  if ($('#toast')) $('#toast').hidden = true;
+  $('#nvmTitle').textContent = st ? 'Sửa nhân viên' : 'Thêm nhân viên';
+  $('#nvmName').value = st ? st.name : '';
+  $('#nvmPhone').value = st ? st.phone : '';
+  setSeg(st ? st.active : true);
+  $('#nvmStatusWrap').hidden = $('#nvmDelWrap').hidden = !st;
+  $('#nvmSave').textContent = st ? '💾 Lưu' : '+ Thêm';
+  $('#nvModal').hidden = false;
+  if (!st) setTimeout(() => $('#nvmName').focus(), 120);
+}
+function closeNv(){ $('#nvModal').hidden = true; $('#nvmName').blur(); $('#nvmPhone').blur(); }
+$('#btnAddNv').onclick = () => openNv(null);
+$('#nvList').addEventListener('click', e => {
+  const b = e.target.closest('.nvi'); if (!b) return;
+  openNv(S.aw.staff.find(s => s.id === b.dataset.id));
+});
+$('#nvmStatus').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSeg(b.dataset.v === '1'); });
+$('#nvmCancel').onclick = closeNv;
+$('#nvModal').onclick = e => { if (e.target.id === 'nvModal') closeNv(); };
+$('#nvmName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmPhone').focus(); } });
+$('#nvmPhone').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmSave').click(); } });
+
+function applyStaffList(list){
+  S.aw.staff = list;
+  S.init.staff = list.filter(s => s.active).map(s => ({ id:s.id, name:s.name }));
+  fillStaffSel(); renderStaffTab(); renderDay(); renderSummary();
+}
+
+$('#nvmSave').onclick = async () => {
+  const name = $('#nvmName').value.trim();
+  if (!name) { toast('Vui lòng nhập họ tên', true); $('#nvmName').focus(); return; }
+  const active = $('#nvmStatus .act').dataset.v === '1';
+  if (nvEditing && nvEditing.active && !active &&
+      !(await ask(`Chuyển "${name}" sang Đã nghỉ?\nTên sẽ không còn hiện cho nhân viên chọn.`, 'Xác nhận'))) return;
+  const obj = { name, phone: $('#nvmPhone').value, active };
+  if (nvEditing) obj.id = nvEditing.id;
+  const list = await call('saveStaff', obj);
+  if (!list) return;
+  closeNv(); applyStaffList(list);
+  toast(nvEditing ? 'Đã lưu thay đổi ✓' : `Đã thêm ${name} ✓`);
+};
+
+$('#nvmDelete').onclick = async () => {
+  const st = nvEditing; if (!st) return;
+  if (S.dirty) { toast('Hãy lưu hoặc hoàn tác xếp ca trước khi xóa nhân viên', true); return; }
+  if (!(await ask(`Xóa hẳn "${st.name}"?\n\nCác ca đăng ký và ca đã xếp của người này từ tuần này trở đi sẽ bị bỏ. Không thể hoàn tác.\n\nNếu chỉ nghỉ tạm, hãy chọn "Đã nghỉ" thay vì xóa.`, '🗑 Xóa', 'Không xóa'))) return;
+  const list = await call('deleteStaff', st.id);
+  if (!list) return;
+  closeNv(); applyStaffList(list);
+  toast(`Đã xóa ${st.name}`);
+  loadAdmin();                             /* tải lại tuần đang xếp vì ca của người này đã bị bỏ */
+};
+
+/* ---------- Tab cài đặt ---------- */
+function renderSettings(){
+  const s = S.aw.settings;
+  $('#cfShop').value = s.shopName;
+  $('#cfShifts').innerHTML = s.shifts.map((x,i) => `
+    <div class="shrow">
+      <small>Ca thứ ${i+1} · tên ca và số người cần</small>
+      <input class="nm" value="${esc(x.name)}" placeholder="Tên ca" aria-label="Tên ca ${i+1}">
+      <input class="nd" type="number" inputmode="numeric" min="0" max="20" value="${Number(x.need) || 0}" aria-label="Số người cần ca ${i+1}">
+      <input class="tm" value="${esc(x.time)}" placeholder="Giờ làm, vd 08:00 - 14:00" aria-label="Giờ làm ca ${i+1}">
+    </div>`).join('');
+  $('#cfLink').value = location.origin;
+  $('#cfMe').textContent = S.me ? (S.me.role === 'owner' ? 'Chủ quán' : S.me.name + ' (quản lý)') : '';
+  $('#mgrCard').hidden = !(S.me && S.me.role === 'owner');
+  if (S.me && S.me.role === 'owner' && !S.mgrLoaded) loadManagers();
+}
+$('#btnSaveCf').onclick = async () => {
+  const shifts = $$('#cfShifts .shrow').map(r => ({
+    name: r.querySelector('.nm').value, time: r.querySelector('.tm').value, need: r.querySelector('.nd').value }));
+  const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts });
+  if (!out) return;
+  S.aw.settings = out; S.init.shifts = out.shifts; S.init.shopName = out.shopName;
+  setShop(out.shopName);
+  renderSettings(); renderOverview(); renderDay(); toast('Đã lưu cài đặt ✓');
+};
+$('#btnCopyLink').onclick = () => copyText($('#cfLink'));
+
+/* ---------- Người quản lý (chỉ chủ quán) ---------- */
+let mgrEditing = null;
+async function loadManagers(){
+  const list = await call('listManagers');
+  if (list) { S.mgrLoaded = true; renderManagers(list); }
+}
+function renderManagers(list){
+  S.mgrs = list;
+  $('#mgrList').innerHTML = list.length ? list.map(m => `<div class="mgr">
+      <span class="tx"><b>${esc(m.name)}</b><small>Tạo lúc ${esc(m.createdAt)}</small></span>
+      <button class="sec" data-mact="edit" data-id="${esc(m.id)}">Đổi PIN</button>
+      <button class="danger" data-mact="del" data-id="${esc(m.id)}">Xóa</button></div>`).join('')
+    : '<p class="hint" style="margin:0">Chưa có người quản lý nào. Chỉ chủ quán đăng nhập được.</p>';
+}
+function resetMgrForm(){
+  mgrEditing = null; $('#mgrName').value = ''; $('#mgrPin').value = '';
+  $('#mgrName').disabled = false; $('#mgrSave').textContent = '+ Thêm người quản lý'; $('#mgrCancel').hidden = true;
+}
+$('#mgrList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-mact]'); if (!b) return;
+  const m = (S.mgrs || []).find(x => x.id === b.dataset.id); if (!m) return;
+  if (b.dataset.mact === 'edit') {
+    mgrEditing = m; $('#mgrName').value = m.name; $('#mgrPin').value = '';
+    $('#mgrSave').textContent = '💾 Lưu tên / PIN mới'; $('#mgrCancel').hidden = false;
+    $('#mgrPin').focus();
+  } else if (await ask(`Xóa người quản lý "${m.name}"?\nNgười này sẽ bị đăng xuất ngay.`, '🗑 Xóa')) {
+    const list = await call('deleteManager', m.id);
+    if (list) { renderManagers(list); resetMgrForm(); toast('Đã xóa ' + m.name); }
+  }
+});
+$('#mgrCancel').onclick = resetMgrForm;
+$('#mgrSave').onclick = async () => {
+  const obj = { name: $('#mgrName').value, pin: $('#mgrPin').value.trim() };
+  if (mgrEditing) obj.id = mgrEditing.id;
+  const list = await call('saveManager', obj);
+  if (!list) return;
+  const pin = obj.pin;
+  renderManagers(list); resetMgrForm();
+  toast(pin ? `Đã lưu. Gửi PIN ${pin} cho người quản lý.` : 'Đã lưu ✓');
+  $('#mgrPin').blur();
+};
+
+/* ---------- Nút tải lại ---------- */
+$('#btnRefresh').onclick = async () => {
+  if (!S.init) { boot(); return; }
+  if (S.view === 'admin') {
+    if (S.dirty && !(await askDiscard())) return;
+    S.dirty = false; await loadAdmin();
+  } else if (S.view === 'staff') {
+    if (S.regDirty && !(await askDiscard())) return;
+    S.regDirty = false;
+    if (await refreshStaff()) toast('Đã cập nhật');
+  }
+};
+
+window.addEventListener('beforeunload', e => { if (S.dirty || S.regDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ================= KHỞI ĐỘNG ================= */
+async function boot(){
+  $('#bootErr').hidden = true;
+  S.week = S.week || nextWeek();
+  S.adminWeek = S.adminWeek || nextWeek();
+  const saved = load('staffId');
+  S.token = load('tk');
+  const r = await call('getInit', saved, S.week);   /* 1 lần gọi: danh sách + dữ liệu tuần */
+  if (!r) { $('#bootErrMsg').textContent = S.lastErr || 'Kiểm tra mạng rồi thử lại.'; $('#bootErr').hidden = false; $('#v-staff').hidden = true; return; }
+  $('#v-staff').hidden = S.view !== 'staff';
+  S.init = r; setShop(r.shopName);
+  S.staffId = r.week ? saved : '';
+  fillStaffSel();
+  if (r.week) { S.st = r.week; S.slots = new Set(r.week.slots); renderStaff(); }
+  S.me = r.me;
+  if (!r.me && S.token) setToken('');                 /* token hết hạn / bị thu hồi */
+  updAdminLink();
+  if (r.me) { show('admin'); tab('xep'); loadAdmin(); }   /* quản lý đã đăng nhập trên máy này → vào thẳng trang quản lý */
+  updBars();
+}
+$('#btnRetry').onclick = boot;
+boot();
+</script>
+</body>
+</html>
