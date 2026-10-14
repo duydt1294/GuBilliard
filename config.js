@@ -7,7 +7,7 @@ module.exports = {
   /* ---------- MongoDB Atlas ---------- */
   // 👉 Chỉ cần thay dòng này bằng mật khẩu của database user "duydemo1294".
   //    Gõ đúng mật khẩu gốc, KHÔNG cần mã hóa ký tự đặc biệt (app tự xử lý).
-  DB_PASSWORD: 'NHAP_MAT_KHAU_DATABASE_VAO_DAY',
+  DB_PASSWORD: 'eHYrzYr9@dAtBPp',
 
   DB_USER: 'duydemo1294',
   DB_HOST: 'duydt19.ayap1vy.mongodb.net',
