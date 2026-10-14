@@ -9,16 +9,9 @@ const { getDb } = require('../lib/db');
 const A = require('../lib/auth');
 const G = require('../lib/google');
 
-/** Client ID "Sign in with Google" của quán (công khai, không phải bí mật). Đổi bằng biến GOOGLE_CLIENT_ID. */
-const DEFAULT_GOOGLE_CLIENT_ID = '55981277953-70kkk72b2m31ku2d5n3p64t70c82gdkm.apps.googleusercontent.com';
-const googleClientId = () => String(process.env.GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID).trim();
-
-/** Gmail có quyền CHỦ QUÁN. Đổi bằng biến môi trường OWNER_EMAILS (phân cách bằng dấu phẩy). */
-const DEFAULT_OWNER_EMAILS = ['duydemo1294@gmail.com', 'hangochien2023@gmail.com'];
-function ownerEmails() {
-  const env = String(process.env.OWNER_EMAILS || '').trim();
-  return (env ? env.split(/[,;\s]+/) : DEFAULT_OWNER_EMAILS).map(e => e.trim().toLowerCase()).filter(Boolean);
-}
+const CFG = require('../lib/config');
+const googleClientId = CFG.googleClientId;     /* Client ID Google – sửa trong config.js */
+const ownerEmails = CFG.ownerEmails;           /* Gmail chủ quán – sửa trong config.js */
 
 const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 const STATUS = ['MO', 'KHOA', 'CONG_BO'];
@@ -184,7 +177,7 @@ const PUBLIC = {
     pass = String(pass || '').trim();
     if (!pass) fail('Vui lòng nhập mật khẩu hoặc mã PIN.');
     let user = null;
-    if (process.env.OWNER_PASSWORD && A.safeEqual(pass, process.env.OWNER_PASSWORD)) {
+    if (CFG.ownerPassword() && A.safeEqual(pass, CFG.ownerPassword())) {
       user = { role: 'owner', sub: 'owner', tag: A.ownerTag(), name: 'Chủ quán' };
     } else {
       for (const m of await db.collection('managers').find({}).toArray()) {
@@ -315,7 +308,7 @@ const OWNER = {
     if (!name) fail('Vui lòng nhập tên người quản lý.');
     if (!id || pin) {
       if (!/^\d{4,8}$/.test(pin)) fail('Mã PIN gồm 4 đến 8 chữ số.');
-      if (process.env.OWNER_PASSWORD && A.safeEqual(pin, process.env.OWNER_PASSWORD)) fail('Mã PIN không được trùng mật khẩu chủ quán.');
+      if (CFG.ownerPassword() && A.safeEqual(pin, CFG.ownerPassword())) fail('Mã PIN không được trùng mật khẩu chủ quán.');
       const others = await db.collection('managers').find({ _id: { $ne: id } }).toArray();
       if (others.some(o => A.checkPin(pin, o.pinHash))) fail('Mã PIN này đã có người dùng, hãy chọn mã khác.');
     }
@@ -339,6 +332,30 @@ const OWNER = {
 
 /* ======================= XỬ LÝ REQUEST ======================= */
 
+/** Dịch lỗi kỹ thuật thành hướng dẫn sửa cụ thể (hiện cả ở /api và trong app). */
+function explainError(e) {
+  const m = String((e && e.message) || e || '');
+  const n = String((e && e.name) || '');
+  if (/Chưa nhập mật khẩu database|Không tải được khóa xác minh của Google/.test(m)) return m;
+  const uri = CFG.mongoUri();
+  if (/<db_password>|%3Cdb_password%3E/i.test(uri))
+    return 'Chuỗi kết nối vẫn còn chữ <db_password> – hãy nhập mật khẩu thật vào DB_PASSWORD trong config.js.';
+  const auth = (uri.match(/^mongodb(?:\+srv)?:\/\/([^/?]*)/) || [])[1] || '';
+  if ((auth.match(/@/g) || []).length > 1)
+    return 'Mật khẩu trong MONGODB_URI có ký tự @ chưa mã hóa – đổi @ thành %40 (hoặc đặt mật khẩu database chỉ gồm chữ và số).';
+  if (n === 'MongoParseError' || /Invalid scheme|URI must include|mongodb\+srv URI|Password contains unescaped|Username contains unescaped|URI malformed/i.test(m))
+    return 'MONGODB_URI viết sai định dạng. Kiểm tra lại chuỗi kết nối; nếu mật khẩu có ký tự đặc biệt (@ : / ? # %) phải mã hóa URL. Chi tiết: ' + m.slice(0, 120);
+  if (/authentication failed|bad auth|AuthenticationFailed/i.test(m))
+    return 'Sai mật khẩu database (DB_PASSWORD trong config.js). Kiểm tra lại, hoặc đặt mật khẩu mới ở MongoDB Atlas → Database Access.';
+  if (/querySrv|ENOTFOUND|EAI_AGAIN/i.test(m))
+    return 'Không tìm thấy cụm MongoDB – kiểm tra DB_HOST (…mongodb.net) trong config.js.';
+  if (n === 'MongoServerSelectionError' || /ECONNREFUSED|Server selection|timed out|ETIMEDOUT|ECONNRESET|SSL|TLS/i.test(m))
+    return 'Không kết nối được MongoDB. Vào MongoDB Atlas → Network Access → Add IP Address → Allow access from anywhere (0.0.0.0/0).';
+  if (/not authorized|Unauthorized|requires authentication/i.test(m))
+    return 'Database user chưa có quyền ghi. MongoDB Atlas → Database Access → Edit → Read and write to any database.';
+  return 'Lỗi máy chủ: ' + m.slice(0, 160);
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -346,8 +363,8 @@ module.exports = async function handler(req, res) {
     try { const db = await getDb(); await db.command({ ping: 1 });
       return res.status(200).end(JSON.stringify({ ok: true, db: 'connected',
         googleLogin: !!googleClientId(), ownerEmails: ownerEmails().length,
-        ownerPassword: !!process.env.OWNER_PASSWORD })); }
-    catch (e) { return res.status(500).end(JSON.stringify({ ok: false, error: e.message })); }
+        ownerPassword: !!CFG.ownerPassword() })); }
+    catch (e) { console.error('health', e); return res.status(500).end(JSON.stringify({ ok: false, error: explainError(e), detail: String(e && e.message || '').slice(0, 200) })); }
   }
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'Method not allowed' }));
 
@@ -376,9 +393,7 @@ module.exports = async function handler(req, res) {
     if (e instanceof AuthError) return res.status(401).end(JSON.stringify({ error: 'AUTH: ' + e.message }));
     if (e instanceof UserError) return res.status(400).end(JSON.stringify({ error: e.message }));
     console.error(fnName, e);
-    const msg = /Không tải được khóa xác minh của Google/.test(e.message || '') ? e.message : /ECONNREFUSED|ENOTFOUND|Server selection|timed out|querySrv/i.test(e.message || '')
-      ? 'Không kết nối được cơ sở dữ liệu. Kiểm tra MONGODB_URI và Network Access (0.0.0.0/0) trên MongoDB Atlas.'
-      : (/authentication failed|bad auth/i.test(e.message || '') ? 'Sai mật khẩu database trong MONGODB_URI.' : 'Lỗi máy chủ, vui lòng thử lại.');
+    const msg = explainError(e);
     return res.status(500).end(JSON.stringify({ error: msg }));
   }
 };
