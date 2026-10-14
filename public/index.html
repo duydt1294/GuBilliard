@@ -142,6 +142,8 @@ table.sum .n{text-align:center;width:62px}
 .mgr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
 .mgr .tx{flex:1;min-width:0}.mgr .tx b{display:block}.mgr .tx small{color:var(--mu);font-size:13px}
 .mgr button{min-height:40px;padding:0 12px;font-size:14px}
+.orline{display:flex;align-items:center;gap:10px;color:var(--mu);font-size:13px;margin:16px 0 12px}
+.orline::before,.orline::after{content:'';flex:1;height:1px;background:var(--bd)}
 .shrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
 .shrow .tm{grid-column:1/-1}
 .shrow small{grid-column:1/-1;color:var(--mu);font-weight:600;font-size:13px}
@@ -209,14 +211,20 @@ table.sum .n{text-align:center;width:62px}
       </div>
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.0</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.1</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
   <section id="v-login" hidden>
     <div class="card" style="margin-top:24px">
       <h3>🔑 Đăng nhập quản lý</h3>
-      <p class="hint">Chủ quán nhập <b>mật khẩu</b>. Người quản lý nhập <b>mã PIN</b> do chủ quán cấp.</p>
+      <div id="gWrap" hidden>
+        <p class="hint">Chủ quán đăng nhập bằng <b>Gmail</b>:</p>
+        <div id="gBtn" style="min-height:44px;display:flex;justify-content:center"></div>
+        <p class="hint" id="gInApp" style="color:var(--o);margin:8px 0 0" hidden>⚠️ Đang mở trong Zalo/Facebook: Google không cho đăng nhập ở đây. Bấm ⋯ → <b>Mở bằng trình duyệt</b> (Chrome/Safari).</p>
+        <div class="orline"><span>hoặc</span></div>
+      </div>
+      <p class="hint" id="pwHint">Người quản lý nhập <b>mã PIN</b> do chủ quán cấp.</p>
       <input id="pw" type="password" placeholder="Mật khẩu hoặc mã PIN" autocomplete="current-password" enterkeyhint="go">
       <button class="full" id="btnLogin" style="margin-top:10px">Đăng nhập</button>
       <button class="link full" id="btnBack1" style="margin-top:6px">← Về trang nhân viên</button>
@@ -396,7 +404,7 @@ async function call(fn, ...args){
     let m = (data && data.error) || ('Lỗi máy chủ (' + r.status + ')');
     if (m.indexOf('AUTH:') === 0) {
       m = m.slice(5).trim();
-      setToken(''); S.me = null; S.dirty = false; updAdminLink(); show('login');
+      setToken(''); S.me = null; S.dirty = false; updAdminLink(); show('login'); setupGoogle();
     }
     S.lastErr = m; toast(m, true);
     return null;
@@ -612,7 +620,7 @@ $('#lnkAdmin').onclick = async () => {
   S.regDirty = false;
   if (!S.adminWeek) S.adminWeek = nextWeek();
   if (S.me) { show('admin'); tab('xep'); loadAdmin(); }
-  else { show('login'); setTimeout(() => $('#pw').focus(), 80); }
+  else { show('login'); setupGoogle(); }
 };
 function updAdminLink(){
   $('#lnkAdmin').textContent = S.me ? '🛠 Vào trang quản lý' : '🔑 Chủ quán đăng nhập';
@@ -620,15 +628,50 @@ function updAdminLink(){
     : (S.me ? 'Quản lý · ' + S.me.name : 'Trang quản lý ca');
 }
 
-async function doLogin(){
-  if (!$('#pw').value.trim()) { toast('Vui lòng nhập mật khẩu hoặc mã PIN', true); return; }
-  $('#pw').blur();
-  const r = await call('adminLogin', $('#pw').value, S.adminWeek);
-  if (!r) return;
+function afterLogin(r){
   setToken(r.token); S.me = r.me; S.mgrLoaded = false; $('#pw').value = '';
   show('admin'); tab('xep');
   if (r.data) applyAdmin(r.data); else loadAdmin();
   toast('Xin chào ' + r.me.name);
+}
+async function doLogin(){
+  if (!$('#pw').value.trim()) { toast('Vui lòng nhập mật khẩu hoặc mã PIN', true); return; }
+  $('#pw').blur();
+  const r = await call('adminLogin', $('#pw').value, S.adminWeek);
+  if (r) afterLogin(r);
+}
+
+/* ---------- Đăng nhập Gmail (Google Identity Services) ---------- */
+const IN_APP = /Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|Messenger/i.test(navigator.userAgent);
+let gisReady = null;
+function loadGis(){
+  if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
+  if (!gisReady) gisReady = new Promise((ok, no) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = ok; sc.onerror = () => { gisReady = null; no(); };
+    document.head.appendChild(sc);
+  });
+  return gisReady;
+}
+async function setupGoogle(){
+  const cid = S.init && S.init.googleClientId;
+  $('#gWrap').hidden = !cid;
+  $('#pwHint').innerHTML = cid ? 'Người quản lý nhập <b>mã PIN</b>. Chủ quán cũng có thể dùng <b>mật khẩu</b>.'
+                               : 'Chủ quán nhập <b>mật khẩu</b>. Người quản lý nhập <b>mã PIN</b> do chủ quán cấp.';
+  if (!cid) return;
+  $('#gInApp').hidden = !IN_APP;
+  try { await loadGis(); } catch (e) { $('#gBtn').innerHTML = '<p class="hint">Không tải được nút Google, kiểm tra mạng.</p>'; return; }
+  google.accounts.id.initialize({ client_id: cid, callback: onGoogle, ux_mode: 'popup', auto_select: false,
+    cancel_on_tap_outside: true, itp_support: true });
+  $('#gBtn').innerHTML = '';
+  google.accounts.id.renderButton($('#gBtn'), { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with',
+    logo_alignment: 'left', locale: 'vi', width: Math.min(360, ($('#gBtn').clientWidth || 300)) });
+}
+async function onGoogle(resp){
+  if (!resp || !resp.credential) { toast('Đăng nhập Google không thành công', true); return; }
+  const r = await call('googleLogin', resp.credential, S.adminWeek);
+  if (r) afterLogin(r);
 }
 $('#btnLogin').onclick = doLogin;
 $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -636,6 +679,7 @@ $('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); })
 $('#btnLogout').onclick = async () => {
   if (!(await ask('Đăng xuất khỏi trang quản lý trên máy này?', 'Đăng xuất'))) return;
   if (S.dirty && !(await askDiscard())) return;
+  try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {}
   setToken(''); S.me = null; S.mgrLoaded = false; S.dirty = false; updAdminLink(); show('staff');
   if (S.init) refreshStaff();
 };
@@ -966,7 +1010,8 @@ function renderSettings(){
       <input class="tm" value="${esc(x.time)}" placeholder="Giờ làm, vd 08:00 - 14:00" aria-label="Giờ làm ca ${i+1}">
     </div>`).join('');
   $('#cfLink').value = location.origin;
-  $('#cfMe').textContent = S.me ? (S.me.role === 'owner' ? 'Chủ quán' : S.me.name + ' (quản lý)') : '';
+  $('#cfMe').textContent = !S.me ? '' : S.me.role !== 'owner' ? S.me.name + ' (quản lý)'
+    : (S.me.email ? S.me.name + ' · ' + S.me.email + ' (chủ quán)' : 'Chủ quán');
   $('#mgrCard').hidden = !(S.me && S.me.role === 'owner');
   if (S.me && S.me.role === 'owner' && !S.mgrLoaded) loadManagers();
 }

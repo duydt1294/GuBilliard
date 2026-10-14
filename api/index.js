@@ -7,6 +7,14 @@
 const crypto = require('crypto');
 const { getDb } = require('../lib/db');
 const A = require('../lib/auth');
+const G = require('../lib/google');
+
+/** Gmail có quyền CHỦ QUÁN. Đổi bằng biến môi trường OWNER_EMAILS (phân cách bằng dấu phẩy). */
+const DEFAULT_OWNER_EMAILS = ['duydemo1294@gmail.com', 'hangochien2023@gmail.com'];
+function ownerEmails() {
+  const env = String(process.env.OWNER_EMAILS || '').trim();
+  return (env ? env.split(/[,;\s]+/) : DEFAULT_OWNER_EMAILS).map(e => e.trim().toLowerCase()).filter(Boolean);
+}
 
 const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 const STATUS = ['MO', 'KHOA', 'CONG_BO'];
@@ -89,6 +97,9 @@ const byIdOf = list => { const m = {}; list.forEach(s => { m[s.id] = s; }); retu
 async function currentUser(db, token) {
   const p = A.verify(token);
   if (!p) return null;
+  if (p.role === 'owner' && p.via === 'google') {
+    return ownerEmails().includes(p.sub) ? { role: 'owner', name: p.name || p.sub, id: p.sub, email: p.sub } : null;
+  }
   if (p.role === 'owner') return p.tag === A.ownerTag() ? { role: 'owner', name: 'Chủ quán', id: 'owner' } : null;
   if (p.role === 'manager') {
     const m = await db.collection('managers').findOne({ _id: p.sub });
@@ -123,7 +134,8 @@ const PUBLIC = {
       shopName: s.shopName, shifts: s.shifts, days: DAYS,
       staff: active.map(x => ({ id: x.id, name: x.name })),
       week: null,
-      me: ctx.user ? { name: ctx.user.name, role: ctx.user.role } : null
+      me: ctx.user ? { name: ctx.user.name, role: ctx.user.role, email: ctx.user.email || '' } : null,
+      googleClientId: process.env.GOOGLE_CLIENT_ID || ''
     };
     if (staffId && /^\d{4}-\d{2}-\d{2}$/.test(String(week || '')) && active.some(x => x.id === String(staffId))) {
       out.week = await getStaffWeek(db, staffId, week);
@@ -152,6 +164,18 @@ const PUBLIC = {
     return getStaffWeek(db, st._id, week);
   },
 
+  async googleLogin(db, ctx, credential, week) {
+    let g;
+    try { g = await G.verifyIdToken(credential, process.env.GOOGLE_CLIENT_ID); }
+    catch (e) { if (e.badToken) fail(e.message); throw e; }
+    if (!ownerEmails().includes(g.email)) fail(`Gmail ${g.email} chưa được cấp quyền chủ quán.`);
+    const user = { role: 'owner', via: 'google', sub: g.email, name: g.name };
+    const token = A.newToken(user);
+    ctx.user = { role: 'owner', name: g.name, id: g.email, email: g.email };
+    return { token, me: { name: g.name, role: 'owner', email: g.email },
+      data: week ? await ADMIN.getAdminWeek(db, ctx, week) : null };
+  },
+
   async adminLogin(db, ctx, pass, week) {
     pass = String(pass || '').trim();
     if (!pass) fail('Vui lòng nhập mật khẩu hoặc mã PIN.');
@@ -165,7 +189,7 @@ const PUBLIC = {
     }
     if (!user) {
       await new Promise(r => setTimeout(r, 900));          /* làm chậm dò mật khẩu */
-      fail(process.env.OWNER_PASSWORD ? 'Sai mật khẩu hoặc mã PIN.' : 'Chưa cấu hình OWNER_PASSWORD trên Vercel.');
+      fail('Sai mật khẩu hoặc mã PIN.');
     }
     const token = A.newToken(user);
     ctx.user = { role: user.role, name: user.name, id: user.sub };
@@ -192,7 +216,7 @@ const ADMIN = {
       assigned: await assignedMap(db, week, byId),
       notes: Object.values(notes),
       staff: list, settings: s,
-      me: { name: ctx.user.name, role: ctx.user.role }
+      me: { name: ctx.user.name, role: ctx.user.role, email: ctx.user.email || '' }
     };
   },
 
@@ -316,7 +340,9 @@ module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method === 'GET') {                                /* kiểm tra nhanh: mở /api trên trình duyệt */
     try { const db = await getDb(); await db.command({ ping: 1 });
-      return res.status(200).end(JSON.stringify({ ok: true, db: 'connected', ownerPassword: !!process.env.OWNER_PASSWORD })); }
+      return res.status(200).end(JSON.stringify({ ok: true, db: 'connected',
+        googleLogin: !!process.env.GOOGLE_CLIENT_ID, ownerEmails: ownerEmails().length,
+        ownerPassword: !!process.env.OWNER_PASSWORD })); }
     catch (e) { return res.status(500).end(JSON.stringify({ ok: false, error: e.message })); }
   }
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'Method not allowed' }));
@@ -346,7 +372,7 @@ module.exports = async function handler(req, res) {
     if (e instanceof AuthError) return res.status(401).end(JSON.stringify({ error: 'AUTH: ' + e.message }));
     if (e instanceof UserError) return res.status(400).end(JSON.stringify({ error: e.message }));
     console.error(fnName, e);
-    const msg = /ECONNREFUSED|ENOTFOUND|Server selection|timed out|querySrv/i.test(e.message || '')
+    const msg = /Không tải được khóa xác minh của Google/.test(e.message || '') ? e.message : /ECONNREFUSED|ENOTFOUND|Server selection|timed out|querySrv/i.test(e.message || '')
       ? 'Không kết nối được cơ sở dữ liệu. Kiểm tra MONGODB_URI và Network Access (0.0.0.0/0) trên MongoDB Atlas.'
       : (/authentication failed|bad auth/i.test(e.message || '') ? 'Sai mật khẩu database trong MONGODB_URI.' : 'Lỗi máy chủ, vui lòng thử lại.');
     return res.status(500).end(JSON.stringify({ error: msg }));
