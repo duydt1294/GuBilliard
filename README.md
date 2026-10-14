@@ -1,10 +1,11 @@
 # 🎱 Gu Billiard – Đăng ký & xếp ca
 
-Web app cho quán bida: nhân viên đăng ký ca hằng tuần (Thứ 2 – Thứ 7, 3 ca/ngày) trên điện thoại, chủ quán/người quản lý duyệt, xếp ca và công bố lịch.
+Web app cho quán bida: nhân viên đăng ký ca hằng tuần (Thứ 2 – Chủ nhật, 3 ca/ngày) trên điện thoại, chủ quán/người quản lý duyệt, xếp ca và công bố lịch.
 
 - **Nhân viên:** mở link → chọn tên → chạm ô để đăng ký ca. Không cần tài khoản.
 - **Chủ quán:** đăng nhập bằng **Gmail** (có sẵn `duydemo1294@gmail.com`, `hangochien2023@gmail.com`) (mật khẩu dự phòng `OWNER_PASSWORD` trong `config.js`, mặc định tắt). Tạo mã PIN cho từng người quản lý.
-- **Người quản lý:** đăng nhập bằng mã PIN, xếp ca, quản lý nhân viên.
+- **Người quản lý:** đăng nhập bằng mã PIN, xếp ca, chấm công, quản lý nhân viên.
+- **Chấm công & lương:** ai được xếp ca coi như đi làm đúng giờ ca; chủ quán chỉ sửa giờ vào/ra thực tế hoặc đánh dấu nghỉ. App tự tính giờ (kể cả ca qua nửa đêm) và lương, **xuất Excel** đúng mẫu bảng lương của quán.
 - Chạy trên **Vercel** (miễn phí), dữ liệu lưu ở **MongoDB Atlas** (miễn phí).
 
 ## Cấu trúc
@@ -17,10 +18,12 @@ lib/db.js           Kết nối MongoDB (dùng lại giữa các lần gọi)
 lib/config.js       Đọc cấu hình (biến môi trường → config.js)
 lib/auth.js         Mật khẩu chủ quán, mã PIN, token phiên đăng nhập
 lib/google.js       Xác minh đăng nhập Gmail (Sign in with Google)
+lib/timesheet.js    Chấm công & tính lương (giờ ca, sửa giờ, nghỉ, qua nửa đêm)
+lib/excel.js        Xuất bảng lương tuần ra Excel
 scripts/dev-server.js  Chạy thử trên máy (npm run dev)
 ```
 
-Collection trong MongoDB (tự tạo khi dùng): `staff`, `registrations`, `assignments`, `weeks`, `settings`, `managers`.
+Collection trong MongoDB (tự tạo khi dùng): `staff`, `registrations`, `assignments`, `attendance` (giờ đã sửa / nghỉ), `weeks`, `settings`, `managers`, `loginFails`.
 
 ## Triển khai
 
@@ -69,12 +72,29 @@ Vercel tự triển khai. Mở `https://gubilliard.vercel.app/api` → thấy `"
 
 Nhân viên đăng ký → chủ quán **🔒 Khóa đăng ký** → xếp ca (hoặc **⚡ Xếp nhanh**) → **📢 Công bố lịch** → app tạo sẵn tin nhắn để dán vào nhóm Zalo.
 
+- Được **xếp dư** so với số người cần của ca (hiện màu xanh dương "dư N"). *Xếp nhanh* chỉ điền tới đủ số người cần.
+- Nhiều người cùng xếp ca: nếu lịch vừa được người khác lưu, app báo và cho tải bản mới – không ghi đè mất dữ liệu của nhau.
+- Nhân viên không sửa được đăng ký của các tuần đã qua.
+
+## Chấm công & lương
+
+1. Tab **👥 Nhân viên**: mỗi người có lương riêng tính theo **nghìn đồng/giờ** (mặc định **18**), bấm **−/+** ngay trên danh sách để giảm/tăng 1.000đ, hoặc chạm tên để nhập số (vd 18,5). Tab **⚙️ Cài đặt**: lương mặc định cho nhân viên mới và giờ từng ca dạng `09:00 - 14:00`.
+2. Tab **💰 Chấm công** → chọn tuần → chọn ngày → chạm tên người:
+   - **Đi làm**: sửa *giờ vào / giờ ra* thực tế (giờ ra nhỏ hơn giờ vào = ra hôm sau, vd 19:00 → 3:00 = 8 giờ).
+   - **Nghỉ / bỏ ca**: ca đó tính 0 giờ.
+   - **Đặt lại đúng giờ ca**: bỏ chỉnh sửa.
+   - Không chạm gì = đi làm đúng giờ ca.
+3. Bấm **📥 Xuất Excel bảng lương**: file gồm sheet *Lương tuần* (TÊN NV · Thứ 2 → Chủ nhật VÀO/RA/TỔNG NGÀY · TỔNG TUẦN · LƯƠNG · TỔNG TIỀN, dòng tổng đỏ) và sheet *Chi tiết ca*. Các cột tổng là công thức – sửa giờ trong Excel tự tính lại. Ô vàng = giờ đã chỉnh.
+
+Người làm 2 ca liền nhau (vd Ca 1 + Ca 2) được gộp thành một khung giờ 9:00–19:00 trong Excel; 2 ca rời nhau trong ngày thì ô TỔNG NGÀY có chú thích từng ca.
+
 ## Bảo mật
 
 - Đăng nhập Gmail được máy chủ xác minh chữ ký của Google, đúng Client ID của quán và email nằm trong danh sách chủ quán.
 - Mở link trong Zalo/Facebook: Google chặn đăng nhập trong trình duyệt nhúng → bấm **⋯ → Mở bằng trình duyệt** (app có nhắc).
 - Thêm/bớt Gmail chủ quán: sửa `OWNER_EMAILS` trong `config.js` rồi push.
 - Đổi PIN hoặc xóa người quản lý: người đó bị đăng xuất ngay.
+- Nhập sai mật khẩu/PIN quá 8 lần trong 15 phút: tạm khóa đăng nhập từ máy đó.
 - Đổi `SESSION_SECRET` trong `config.js`: đăng xuất tất cả mọi người.
 
 ## Chạy thử trên máy

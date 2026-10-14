@@ -53,6 +53,8 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .st-MO{background:var(--gl);color:var(--g)}
 .st-KHOA{background:var(--ol);color:#8a4b00}
 .st-CONG_BO{background:var(--bl);color:var(--b)}
+.st-QUA{background:#eceeed;color:var(--mu)}
+.saved{font-size:13px;color:var(--mu);margin:-4px 0 10px}
 /* Lưới đăng ký của nhân viên */
 table.reg{width:100%;border-collapse:separate;border-spacing:6px;margin:0 -6px;width:calc(100% + 12px)}
 table.reg th{font-size:14px;font-weight:700;padding:0 2px}
@@ -77,8 +79,9 @@ table.sched th{background:#f6f8f7;font-size:13px}
 table.sched tr>th:first-child{width:52px}
 .me{font-weight:700;color:var(--g);background:var(--gl);border-radius:4px;padding:0 3px}
 /* Chủ quán */
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#e3e9e6;padding:4px;border-radius:14px;margin-bottom:12px}
-.tabs button{background:transparent;color:var(--g);min-height:42px;padding:6px 4px;font-size:15px;border-radius:10px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#e3e9e6;padding:4px;border-radius:14px;margin-bottom:12px}
+.tabs button{background:transparent;color:var(--g);min-height:50px;padding:4px 2px;font-size:12.5px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15}
+.tabs button span{font-size:19px}
 .tabs button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .acts .wide{grid-column:1/-1}
@@ -93,7 +96,7 @@ table.ov tr.sel th:first-child small{color:#d6eadf}
 .ovc small{display:block;font-size:11px;font-weight:500;opacity:.85}
 .ovc.ok{background:var(--gl);color:var(--g)}
 .ovc.lack{background:var(--rl);color:var(--r)}
-.ovc.over{background:var(--ol);color:var(--o)}
+.ovc.over{background:var(--bl);color:var(--b)}
 .ovc.zero{background:#f1f4f2;color:var(--mu)}
 tr.sel .ovc{border-color:var(--g)}
 #dayCard{scroll-margin-top:72px;padding:0;overflow:hidden}
@@ -103,13 +106,13 @@ tr.sel .ovc{border-color:var(--g)}
 .slot{padding:12px 14px;border-top:1px solid var(--bd);border-left:6px solid #c3cdc8}
 .slot.ok{border-left-color:var(--g2)}
 .slot.lack{border-left-color:var(--r);background:#fffafa}
-.slot.over{border-left-color:var(--o)}
+.slot.over{border-left-color:var(--b)}
 .sloth{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:6px}
 .sloth b{font-size:16px}
 .cnt{font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;white-space:nowrap}
 .ok .cnt{background:var(--gl);color:var(--g)}
 .lack .cnt{background:var(--rl);color:var(--r)}
-.over .cnt{background:var(--ol);color:var(--o)}
+.over .cnt{background:var(--bl);color:var(--b)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .chip{min-height:42px;padding:8px 14px;border-radius:22px;border:1.5px solid #b9c5bf;background:#fff;color:var(--tx);font-weight:600;font-size:15px}
 .chip.on{background:var(--g2);color:#fff;border-color:var(--g2)}
@@ -123,13 +126,23 @@ table.sum th,table.sum td{border-bottom:1px solid var(--bd);padding:9px 4px;text
 table.sum th{font-size:13px;color:var(--mu);font-weight:600}
 table.sum .n{text-align:center;width:62px}
 .warnt{font-size:12px;color:var(--o);display:block}
-.nvi{display:flex;align-items:center;gap:12px;width:100%;background:#fff;color:var(--tx);border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:10px 2px;min-height:62px;text-align:left;font-weight:400}
+.nvi{display:flex;align-items:center;gap:10px;width:100%;background:#fff;color:var(--tx);border:0;border-bottom:1px solid var(--bd);border-radius:0;padding:8px 0;min-height:62px;text-align:left;font-weight:400}
 .nvi:last-child{border-bottom:0}
 .nvi .avt{width:40px;height:40px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none}
 .nvi .tx{flex:1;min-width:0}
 .nvi .tx b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nvi .tx small{color:var(--mu);font-size:13px}
 .nvi .go{color:#b0bab5;font-size:22px}
+.nvi .main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;background:none;border:0;padding:4px 0;min-height:48px;color:inherit;text-align:left;font-weight:400}
+.rate{display:flex;align-items:center;gap:4px;flex:none}
+.rate button{width:36px;height:36px;min-height:0;padding:0;border-radius:50%;background:#fff;color:var(--g);border:1.5px solid var(--g2);font-size:20px;line-height:1}
+.rate .v{min-width:46px;text-align:center;line-height:1.1}
+.rate .v b{display:block;font-size:17px;color:var(--g)}
+.rate .v small{font-size:11px;color:var(--mu)}
+.rate.saving .v b{opacity:.5}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:52px;min-height:52px;padding:0;border-radius:14px;background:#fff;color:var(--g);border:1.5px solid var(--g2);font-size:26px}
+.stepper input{text-align:center;font-size:22px;font-weight:700;color:var(--g);min-height:52px}
 .nvi.off .avt{background:#eceeed;color:#9aa6a0}
 .nvi.off b{color:var(--mu)}
 .badge{font-size:12px;padding:3px 9px;border-radius:20px;background:#eceeed;color:var(--mu);white-space:nowrap}
@@ -142,6 +155,26 @@ table.sum .n{text-align:center;width:62px}
 .mgr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
 .mgr .tx{flex:1;min-width:0}.mgr .tx b{display:block}.mgr .tx small{color:var(--mu);font-size:13px}
 .mgr button{min-height:40px;padding:0 12px;font-size:14px}
+.tsum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.tsum div{background:var(--gl);border-radius:12px;padding:10px 12px}
+.tsum b{display:block;font-size:22px;color:var(--g)}
+.tsum small{color:var(--mu);font-size:13px}
+.tsr{display:flex;align-items:center;gap:10px;width:100%;background:#fff;color:var(--tx);border:0;border-top:1px solid var(--bd);border-radius:0;padding:10px 14px;min-height:58px;text-align:left;font-weight:400}
+.tsr .tx{flex:1;min-width:0}
+.tsr .tx b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsr .tx small{color:var(--mu);font-size:13px}
+.tsr .hr{font-weight:700;color:var(--g);white-space:nowrap}
+.tsr.off .tx b{color:var(--mu);text-decoration:line-through}
+.tsr.off .hr{color:var(--r)}
+.tsh{padding:8px 14px;background:#f6f8f7;font-size:13px;font-weight:700;color:var(--mu);border-top:1px solid var(--bd)}
+.bd{font-size:11.5px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-weight:600}
+.bd-ok{background:var(--gl);color:var(--g)} .bd-ed{background:#fff2cc;color:#8a6100} .bd-off{background:var(--rl);color:var(--r)} .bd-warn{background:var(--ol);color:var(--o)}
+table.pay{width:100%;border-collapse:collapse;font-size:15px}
+table.pay th,table.pay td{border-bottom:1px solid var(--bd);padding:9px 4px;text-align:left}
+table.pay th{font-size:13px;color:var(--mu);font-weight:600}
+table.pay .r{text-align:right;white-space:nowrap}
+table.pay tr.tot td{font-weight:700;border-top:2px solid var(--g);border-bottom:0}
+input[type=time]{min-height:46px}
 .orline{display:flex;align-items:center;gap:10px;color:var(--mu);font-size:13px;margin:16px 0 12px}
 .orline::before,.orline::after{content:'';flex:1;height:1px;background:var(--bd)}
 .shrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
@@ -211,7 +244,7 @@ table.sum .n{text-align:center;width:62px}
       </div>
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.1</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.4</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -234,15 +267,17 @@ table.sum .n{text-align:center;width:62px}
   <!-- ============ CHỦ QUÁN ============ -->
   <section id="v-admin" hidden>
     <div class="tabs">
-      <button data-tab="xep" class="act">📅 Xếp ca</button>
-      <button data-tab="nv">👥 Nhân viên</button>
-      <button data-tab="cd">⚙️ Cài đặt</button>
+      <button data-tab="xep" class="act"><span>📅</span>Xếp ca</button>
+      <button data-tab="cc"><span>💰</span>Chấm công</button>
+      <button data-tab="nv"><span>👥</span>Nhân viên</button>
+      <button data-tab="cd"><span>⚙️</span>Cài đặt</button>
     </div>
 
     <div id="t-xep">
       <div id="adWeek" class="weeknav"></div>
       <div class="card">
         <div id="adStatus" class="status"></div>
+        <div id="adSaved" class="saved" hidden></div>
         <div class="acts" id="adActions"></div>
       </div>
       <div class="card">
@@ -252,23 +287,38 @@ table.sum .n{text-align:center;width:62px}
         <div class="legend">
           <span><i style="background:var(--gl);border:1px solid var(--g2)"></i>Đủ người</span>
           <span><i style="background:var(--rl);border:1px solid var(--r)"></i>Thiếu người</span>
-          <span><i style="background:var(--ol);border:1px solid var(--o)"></i>Dư người</span>
+          <span><i style="background:var(--bl);border:1px solid var(--b)"></i>Dư người (được phép)</span>
           <span><i style="background:#f1f4f2;border:1px solid #c3cdc8"></i>Không cần người</span>
         </div>
       </div>
       <div class="card" id="dayCard"></div>
-      <p class="hint" style="text-align:center">Chạm tên để <b>xếp / bỏ xếp</b>. Tên viền đứt là người không đăng ký ca đó.</p>
+      <p class="hint" style="text-align:center">Chạm tên để <b>xếp / bỏ xếp</b>. Được xếp <b>nhiều hơn số người cần</b>. Tên viền đứt là người không đăng ký ca đó.</p>
       <details class="card" id="notesCard" hidden><summary>📝 Ghi chú của nhân viên</summary><div id="notes"></div></details>
       <details class="card"><summary id="sumTitle">📊 Tổng hợp theo nhân viên</summary><div id="summary"></div></details>
+    </div>
+
+    <div id="t-cc" hidden>
+      <div id="ccWeek" class="weeknav"></div>
+      <div class="card">
+        <div class="tsum">
+          <div><b id="ccHours">0</b><small>giờ công cả quán</small></div>
+          <div><b id="ccPay">0đ</b><small>tổng lương tuần</small></div>
+        </div>
+        <p class="hint" id="ccInfo" style="margin:4px 0 10px"></p>
+        <button class="full" id="btnExport">📥 Xuất Excel bảng lương</button>
+      </div>
+      <div class="card" id="ccDay" style="padding:0;overflow:hidden"></div>
+      <p class="hint" style="text-align:center">Chạm một dòng để sửa <b>giờ vào/ra</b> hoặc đánh dấu <b>nghỉ</b>. Không sửa = đi làm đúng giờ ca.</p>
+      <details class="card" open><summary>💰 Bảng lương tuần</summary><div id="ccPeople"></div></details>
     </div>
 
     <div id="t-nv" hidden>
       <button class="full" id="btnAddNv" style="margin-bottom:12px">+ Thêm nhân viên</button>
       <div class="card">
         <h3 id="nvTitle">Danh sách</h3>
-        <input id="nvSearch" type="search" placeholder="🔍 Tìm theo tên hoặc SĐT" autocomplete="off" style="margin:6px 0 4px">
+        <input id="nvSearch" type="search" placeholder="🔍 Tìm theo tên" autocomplete="off" style="margin:6px 0 4px">
         <div id="nvList"></div>
-        <p class="hint" style="margin:10px 0 0">Chạm vào một người để <b>sửa</b> hoặc <b>xóa</b>.</p>
+        <p class="hint" style="margin:10px 0 0">Bấm <b>−</b> / <b>+</b> để giảm/tăng lương (nghìn đồng/giờ). Chạm vào tên để sửa tên, đổi trạng thái hoặc xóa.</p>
       </div>
     </div>
 
@@ -277,6 +327,9 @@ table.sum .n{text-align:center;width:62px}
         <h3>Quán & ca làm</h3>
         <label for="cfShop">Tên quán</label>
         <input id="cfShop">
+        <label for="cfRate" style="margin-top:12px">Lương mặc định cho nhân viên mới <span class="mu">(nghìn đồng / giờ)</span></label>
+        <input id="cfRate" inputmode="decimal" placeholder="Vd: 18">
+        <p class="hint" style="margin:6px 0 0">Lương từng người chỉnh ở tab Nhân viên. Giờ làm của ca nên ghi dạng <b>09:00 - 14:00</b> để chấm công tự lấy giờ.</p>
         <div id="cfShifts"></div>
         <button class="full" id="btnSaveCf" style="margin-top:10px">💾 Lưu cài đặt</button>
       </div>
@@ -338,8 +391,13 @@ table.sum .n{text-align:center;width:62px}
     <h3 id="nvmTitle">Thêm nhân viên</h3>
     <label for="nvmName">Họ tên</label>
     <input id="nvmName" placeholder="Vd: Nguyễn Minh Anh" autocomplete="off" enterkeyhint="next">
-    <label for="nvmPhone">SĐT / Zalo <span class="mu">(không bắt buộc)</span></label>
-    <input id="nvmPhone" type="tel" inputmode="tel" placeholder="Vd: 0901234567" autocomplete="off" enterkeyhint="done">
+    <label for="nvmRate">Lương <span class="mu">(nghìn đồng / giờ)</span></label>
+    <div class="stepper">
+      <button type="button" id="rtMinus" aria-label="Giảm lương">−</button>
+      <input id="nvmRate" inputmode="decimal" autocomplete="off" enterkeyhint="done" aria-label="Lương nghìn đồng mỗi giờ">
+      <button type="button" id="rtPlus" aria-label="Tăng lương">+</button>
+    </div>
+    <p class="hint" id="rtHint" style="margin:6px 0 0"></p>
     <div id="nvmStatusWrap">
       <label>Trạng thái</label>
       <div class="seg" id="nvmStatus"><button data-v="1">Đang làm</button><button data-v="0">Đã nghỉ</button></div>
@@ -353,6 +411,28 @@ table.sum .n{text-align:center;width:62px}
       <button class="danger full" id="nvmDelete">🗑 Xóa nhân viên</button>
       <p class="hint" style="margin:6px 0 0">Xóa hẳn khỏi danh sách và bỏ các ca đăng ký / đã xếp <b>từ tuần này trở đi</b>. Lịch sử các tuần trước vẫn giữ.</p>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="atModal" hidden>
+  <div class="sheet">
+    <h3 id="atTitle"></h3>
+    <p class="hint" id="atSub" style="margin:0 0 12px"></p>
+    <div class="seg" id="atMode"><button data-v="1">Đi làm</button><button data-v="0">Nghỉ / bỏ ca</button></div>
+    <div id="atTimes">
+      <div class="row2" style="margin-top:12px">
+        <div><label for="atIn">Giờ vào</label><input id="atIn" type="time"></div>
+        <div><label for="atOut">Giờ ra</label><input id="atOut" type="time"></div>
+      </div>
+      <p class="hint" id="atCalc" style="margin:8px 0 0"></p>
+    </div>
+    <label for="atNote" style="margin-top:12px">Ghi chú</label>
+    <input id="atNote" maxlength="200" placeholder="Không bắt buộc, vd: về sớm" autocomplete="off">
+    <div class="row2" style="margin-top:16px">
+      <button class="sec" id="atCancel">Hủy</button>
+      <button id="atSave">💾 Lưu</button>
+    </div>
+    <button class="link full" id="atReset">↺ Đặt lại đúng giờ ca</button>
   </div>
 </div>
 
@@ -371,7 +451,7 @@ table.sum .n{text-align:center;width:62px}
 <script>
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const SHORT = ['T2','T3','T4','T5','T6','T7'];
+const SHORT = ['T2','T3','T4','T5','T6','T7','CN'];
 const S = { init:null, view:'staff', staffId:'', week:'', slots:new Set(), st:null, regDirty:false,
             aw:null, awWeek:'', asg:{}, dirty:false, adminWeek:'', selDay:0, tab:'xep' };
 
@@ -402,6 +482,7 @@ async function call(fn, ...args){
     let data = null; try { data = await r.json(); } catch (e) {}
     if (r.ok && data && data.ok) return data.result;
     let m = (data && data.error) || ('Lỗi máy chủ (' + r.status + ')');
+    if (m.indexOf('CONFLICT:') === 0) { S.lastErr = m.slice(9).trim(); S.conflict = true; return null; }
     if (m.indexOf('AUTH:') === 0) {
       m = m.slice(5).trim();
       setToken(''); S.me = null; S.dirty = false; updAdminLink(); show('login'); setupGoogle();
@@ -419,6 +500,7 @@ function setToken(t){ S.token = t || ''; store('tk', S.token); }
 /** Hộp thoại xác nhận (thay cho confirm() – đẹp và ổn định hơn trên điện thoại). */
 function ask(msg, okText, cancelText){
   return new Promise(res => {
+    if ($('#toast')) { $('#toast').hidden = true; clearTimeout(toastT); }
     $('#askMsg').textContent = msg;
     $('#askOk').textContent = okText || 'Đồng ý';
     $('#askCancel').textContent = cancelText || 'Hủy';
@@ -451,14 +533,14 @@ function monday(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(
 function addDays(s,n){ const d = fromIso(s); d.setDate(d.getDate()+n); return iso(d); }
 function dm(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
 function dayDate(week,d){ return dm(fromIso(addDays(week,d))); }
-function weekLabel(w){ const a = fromIso(w), b = fromIso(addDays(w,5)); return dm(a)+' – '+dm(b)+'/'+b.getFullYear(); }
+function weekLabel(w){ const a = fromIso(w), b = fromIso(addDays(w,6)); return dm(a)+' – '+dm(b)+'/'+b.getFullYear(); }
 function weekDiff(w){ return Math.round((fromIso(w) - monday(new Date())) / 864e5 / 7); }
 function relTag(w){
   const d = weekDiff(w);
   return {0:'Tuần này', 1:'Tuần sau', '-1':'Tuần trước'}[d] || (d > 0 ? d+' tuần nữa' : (-d)+' tuần trước');
 }
 function nextWeek(){ return addDays(iso(monday(new Date())), 7); }
-function todayIdx(){ const w = (new Date().getDay()+6)%7; return w > 5 ? 5 : w; }
+function todayIdx(){ return (new Date().getDay()+6)%7; }
 function renderWeekNav(sel, week, onMove){
   const el = $(sel);
   el.innerHTML = `<button data-m="-1" aria-label="Tuần trước">‹</button>
@@ -543,7 +625,8 @@ function renderStaff(){
   $('#stStatus').textContent = {
     MO: '🟢 Đang mở đăng ký – chọn ca rồi bấm Lưu',
     KHOA: '🟠 Đã khóa đăng ký – chủ quán đang xếp ca',
-    CONG_BO: '🔵 Đã có lịch chính thức'
+    CONG_BO: '🔵 Đã có lịch chính thức',
+    QUA: '⚪ Tuần đã qua – chỉ xem'
   }[r.status];
 
   if (r.schedule) {
@@ -696,7 +779,9 @@ $('#btnBack2').onclick = backToStaff;
 function tab(name){
   S.tab = name;
   $$('.tabs button').forEach(b => b.classList.toggle('act', b.dataset.tab === name));
-  ['xep','nv','cd'].forEach(t => $('#t-'+t).hidden = t !== name);
+  ['xep','cc','nv','cd'].forEach(t => $('#t-'+t).hidden = t !== name);
+  if (name === 'cc') loadTimesheet();
+  if (name === 'xep' && S.aw && S.awWeek !== S.adminWeek) loadAdmin();
   updBars(); window.scrollTo(0, 0);
 }
 $$('.tabs button').forEach(b => b.onclick = () => tab(b.dataset.tab));
@@ -740,6 +825,8 @@ function renderAdmin(){
     KHOA: '🟠 Đã khóa đăng ký – nhân viên không sửa được nữa',
     CONG_BO: '🔵 Đã công bố – nhân viên đang xem lịch này'
   }[st];
+  $('#adSaved').hidden = !S.aw.savedBy;
+  $('#adSaved').textContent = S.aw.savedBy ? `Lưu lần cuối: ${S.aw.savedBy} · ${S.aw.savedAt}` : '';
   let b = '';
   if (st === 'MO')   b += '<button class="warn" data-st="KHOA">🔒 Khóa đăng ký</button>';
   if (st === 'KHOA') b += '<button class="sec" data-st="MO">🔓 Mở lại</button>';
@@ -765,7 +852,7 @@ function renderOverview(){
     h += `<tr class="${d === S.selDay ? 'sel' : ''}"><th>${SHORT[d]}<small>${dayDate(S.adminWeek,d)}</small></th>` +
       I.shifts.map((sh,s) => {
         const k = d+'-'+s, n = (S.asg[k] || []).length, need = Number(sh.need) || 0, reg = (r.registered[k] || []).length;
-        return `<td><button class="ovc ${slotState(n,need)}" data-d="${d}">${n}/${need}<small>${reg} đăng ký</small></button></td>`;
+        return `<td><button class="ovc ${slotState(n,need)}" data-d="${d}">${n}/${need}<small>${n > need ? 'dư ' + (n - need) : reg + ' đăng ký'}</small></button></td>`;
       }).join('') + '</tr>';
   });
   $('#overview').innerHTML = h + '</table>';
@@ -794,9 +881,9 @@ function renderDay(){
     const others = r.staff.filter(x => x.active && !regIds.includes(x.id) && !asg.includes(x.id))
       .sort((a,b) => a.name.localeCompare(b.name,'vi'));
     h += `<div class="slot ${slotState(asg.length, need)}">
-      <div class="sloth"><span><b>${esc(sh.name)}</b> <span class="mu">${esc(sh.time)}</span></span><span class="cnt">${asg.length}/${need} người</span></div>
+      <div class="sloth"><span><b>${esc(sh.name)}</b> <span class="mu">${esc(sh.time)}</span></span><span class="cnt">${asg.length}/${need} người${asg.length > need ? ' · dư ' + (asg.length - need) : ''}</span></div>
       <div class="chips">${chips || '<span class="empty">Chưa ai đăng ký ca này</span>'}</div>
-      ${others.length ? `<select class="add" data-k="${k}" aria-label="Thêm người"><option value="">+ Thêm người không đăng ký…</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : ''}
+      ${others.length ? `<select class="add" data-k="${k}" aria-label="Thêm người"><option value="">${asg.length >= need ? '+ Xếp thêm người (dư)…' : '+ Thêm người không đăng ký…'}</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select>` : ''}
     </div>`;
   });
   $('#dayCard').innerHTML = h;
@@ -806,7 +893,7 @@ function changed(){ S.dirty = true; renderOverview(); renderDay(); renderSummary
 
 $('#dayCard').addEventListener('click', e => {
   const nav = e.target.closest('[data-dd]');
-  if (nav) { S.selDay = Math.max(0, Math.min(5, S.selDay + Number(nav.dataset.dd))); renderOverview(); renderDay(); return; }
+  if (nav) { S.selDay = Math.max(0, Math.min(S.init.days.length - 1, S.selDay + Number(nav.dataset.dd))); renderOverview(); renderDay(); return; }
   const c = e.target.closest('.chip'); if (!c) return;
   const k = c.dataset.k, id = c.dataset.id, a = S.asg[k] = S.asg[k] || [];
   const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else a.push(id);
@@ -848,8 +935,14 @@ function renderNotes(){
 }
 
 async function saveXep(){
-  const r = await call('saveAssignment', S.adminWeek, S.asg);
-  if (!r) return false;
+  S.conflict = false;
+  const r = await call('saveAssignment', S.adminWeek, S.asg, S.aw.rev || 0);
+  if (!r) {
+    if (S.conflict && await ask(S.lastErr + '\n\nThay đổi của bạn chưa được lưu.', '↻ Tải bản mới', 'Ở lại')) {
+      S.dirty = false; await loadAdmin();
+    }
+    return false;
+  }
   applyAdmin(r); toast('Đã lưu xếp ca ✓');
   return true;
 }
@@ -858,16 +951,20 @@ $('#btnUndo').onclick = async () => {
   if (await ask('Hoàn tác mọi thay đổi chưa lưu?', 'Hoàn tác')) applyAdmin(S.aw);
 };
 
-function countLack(){
-  let n = 0;
-  S.init.days.forEach((_,d) => S.init.shifts.forEach((sh,s) => { if ((S.asg[d+'-'+s] || []).length < (Number(sh.need) || 0)) n++; }));
-  return n;
+function countSlots(){
+  let lack = 0, over = 0;
+  S.init.days.forEach((_,d) => S.init.shifts.forEach((sh,s) => {
+    const n = (S.asg[d+'-'+s] || []).length, need = Number(sh.need) || 0;
+    if (n < need) lack++; else if (n > need) over++;
+  }));
+  return { lack, over };
 }
 
 async function setStatus(code){
   if (code === 'CONG_BO') {
-    const lack = countLack();
-    const msg = lack ? `Còn ${lack} ca chưa đủ người.\nVẫn công bố lịch cho nhân viên?` : 'Công bố lịch tuần này cho nhân viên?';
+    const c = countSlots();
+    const info = [c.lack ? `• ${c.lack} ca chưa đủ người` : '', c.over ? `• ${c.over} ca xếp dư người` : ''].filter(Boolean).join('\n');
+    const msg = (info ? info + '\n\n' : '') + 'Công bố lịch tuần này cho nhân viên?';
     if (!(await ask(msg, '📢 Công bố'))) return;
   }
   if (code === 'KHOA' && S.aw.status === 'CONG_BO' &&
@@ -922,6 +1019,149 @@ $('#btnShareZalo').onclick = async () => {
 $('#btnCloseZalo').onclick = () => $('#zaloModal').hidden = true;
 $('#zaloModal').onclick = e => { if (e.target.id === 'zaloModal') $('#zaloModal').hidden = true; };
 
+/* ---------- Tab chấm công ---------- */
+const money = n => Math.round(n || 0).toLocaleString('vi-VN') + 'đ';
+const hrs = m => (Math.round((m || 0) / 6) / 10).toLocaleString('vi-VN') + ' giờ';
+const showT = t => t ? String(+t.split(':')[0]) + ':' + t.split(':')[1] : '';
+const workMin = (a, b) => { if (!a || !b) return 0; const t = x => +x.split(':')[0] * 60 + +x.split(':')[1]; let d = t(b) - t(a); if (d <= 0) d += 1440; return d; };
+
+let seqTs = 0;
+async function loadTimesheet(){
+  renderTsWeekNav();
+  const my = ++seqTs;
+  const r = await call('getTimesheet', S.adminWeek);
+  if (my !== seqTs || !r) return;
+  S.ts = r;
+  if (S.tsWeek !== S.adminWeek) { S.tsWeek = S.adminWeek; S.ccDay = weekDiff(S.adminWeek) === 0 ? todayIdx() : 0; }
+  renderTs();
+}
+function renderTsWeekNav(){
+  renderWeekNav('#ccWeek', S.adminWeek, async d => {
+    if (S.dirty && !(await askDiscard())) return;
+    S.dirty = false; S.adminWeek = addDays(S.adminWeek, 7*d); loadTimesheet();
+  });
+}
+function renderTs(){
+  const t = S.ts, I = S.init;
+  $('#ccHours').textContent = (Math.round(t.totals.minutes / 6) / 10).toLocaleString('vi-VN');
+  $('#ccPay').textContent = money(t.totals.pay);
+  const info = [`${t.people.length} nhân viên · ${t.records.length} lượt ca`];
+  if (t.totals.edited) info.push(`${t.totals.edited} ca đã sửa giờ`);
+  if (t.totals.absents) info.push(`${t.totals.absents} ca nghỉ`);
+  if (t.totals.noTime) info.push(`⚠️ ${t.totals.noTime} ca chưa có giờ`);
+  $('#ccInfo').textContent = t.records.length ? info.join(' · ') : 'Tuần này chưa xếp ca nào. Hãy xếp ca ở tab Xếp ca trước.';
+  $('#btnExport').disabled = !t.people.length;
+
+  /* Ngày đang chọn */
+  const d = S.ccDay || 0;
+  const recs = t.records.filter(r => r.day === d);
+  const dayMin = recs.reduce((s, r) => s + r.minutes, 0);
+  let h = `<div class="dnav"><button data-cd="-1" ${d === 0 ? 'disabled' : ''} aria-label="Ngày trước">‹</button>
+    <div><b>${I.days[d]}</b> · ${dayDate(S.adminWeek, d)}<br><small style="opacity:.85">${recs.length} lượt · ${hrs(dayMin)}</small></div>
+    <button data-cd="1" ${d === I.days.length - 1 ? 'disabled' : ''} aria-label="Ngày sau">›</button></div>`;
+  if (!recs.length) h += '<p class="hint" style="padding:14px;margin:0">Không có ai được xếp ca ngày này.</p>';
+  let lastShift = -1;
+  recs.forEach(r => {
+    if (r.shift !== lastShift) {
+      lastShift = r.shift;
+      const sh = (t.shifts[r.shift] || {});
+      h += `<div class="tsh">${esc(sh.name || r.shiftName)} · ${esc(sh.time || '')}</div>`;
+    }
+    const badge = r.absent ? '<span class="bd bd-off">Nghỉ</span>' : r.noTime ? '<span class="bd bd-warn">Chưa có giờ</span>'
+      : r.edited ? '<span class="bd bd-ed">Đã sửa</span>' : '<span class="bd bd-ok">Đúng giờ</span>';
+    const time = r.absent ? 'Nghỉ / bỏ ca' : (r.in && r.out ? `${showT(r.in)} – ${showT(r.out)}` : 'Chưa có giờ – chạm để nhập');
+    h += `<button class="tsr ${r.absent ? 'off' : ''}" data-k="${r.day}|${r.shift}|${esc(r.staffId)}">
+      <span class="tx"><b>${esc(r.name)}</b><small>${time}${r.note ? ' · ' + esc(r.note) : ''}</small></span>
+      ${badge}<span class="hr">${r.absent ? '0' : (Math.round(r.minutes / 6) / 10).toLocaleString('vi-VN')}h</span></button>`;
+  });
+  $('#ccDay').innerHTML = h;
+
+  /* Bảng lương */
+  $('#ccPeople').innerHTML = t.people.length ? `<table class="pay"><tr><th>Nhân viên</th><th class="r">Giờ</th><th class="r">Lương/giờ</th><th class="r">Tiền</th></tr>` +
+    t.people.map(p => `<tr><td>${esc(p.name)}${p.absents ? ` <span class="bd bd-off">${p.absents} nghỉ</span>` : ''}</td>
+      <td class="r">${(Math.round(p.minutes / 6) / 10).toLocaleString('vi-VN')}</td><td class="r">${(p.rate / 1000).toLocaleString('vi-VN')}k</td><td class="r"><b>${money(p.pay)}</b></td></tr>`).join('') +
+    `<tr class="tot"><td>Tổng</td><td class="r">${(Math.round(t.totals.minutes / 6) / 10).toLocaleString('vi-VN')}</td><td></td><td class="r">${money(t.totals.pay)}</td></tr></table>`
+    : '<p class="hint" style="margin:0">Chưa có dữ liệu.</p>';
+}
+$('#ccDay').addEventListener('click', e => {
+  const nav = e.target.closest('[data-cd]');
+  if (nav) { S.ccDay = Math.max(0, Math.min(S.init.days.length - 1, (S.ccDay || 0) + Number(nav.dataset.cd))); renderTs(); return; }
+  const b = e.target.closest('.tsr'); if (!b) return;
+  const [day, shift, staffId] = b.dataset.k.split('|');
+  const r = S.ts.records.find(x => x.day === +day && x.shift === +shift && x.staffId === staffId);
+  if (r) openAt(r);
+});
+
+/* Bảng sửa giờ vào/ra */
+let atRec = null;
+function atMode(work){
+  $$('#atMode button').forEach(b => b.classList.toggle('act', (b.dataset.v === '1') === work));
+  $('#atTimes').hidden = !work;
+  atCalc();
+}
+function atCalc(){
+  const work = $('#atMode .act').dataset.v === '1';
+  const a = $('#atIn').value, b = $('#atOut').value;
+  if (!work) { $('#atCalc').textContent = 'Ca này tính 0 giờ.'; return; }
+  if (!a || !b) { $('#atCalc').textContent = 'Nhập đủ giờ vào và giờ ra.'; return; }
+  if (a === b) { $('#atCalc').textContent = '⚠️ Giờ vào và giờ ra trùng nhau.'; return; }
+  const m = workMin(a, b);
+  const rate = (S.ts.people.find(p => p.id === atRec.staffId) || {}).rate || S.ts.rateDefault || 0;
+  $('#atCalc').innerHTML = `= <b>${hrs(m)}</b>${b <= a ? ' (ra hôm sau)' : ''} · ${money(m * rate / 60)}`;
+}
+function openAt(r){
+  atRec = r;
+  $('#atTitle').textContent = r.name;
+  $('#atSub').textContent = `${S.init.days[r.day]} ${dayDate(S.adminWeek, r.day)} · ${r.shiftName}` + (r.defIn ? ` (giờ ca ${showT(r.defIn)} – ${showT(r.defOut)})` : '');
+  $('#atIn').value = r.in || r.defIn || '';
+  $('#atOut').value = r.out || r.defOut || '';
+  $('#atNote').value = r.note || '';
+  $('#atReset').hidden = !r.edited;
+  atMode(!r.absent);
+  $('#atModal').hidden = false;
+}
+const closeAt = () => { $('#atModal').hidden = true; document.activeElement && document.activeElement.blur(); };
+$('#atMode').addEventListener('click', e => { const b = e.target.closest('button'); if (b) atMode(b.dataset.v === '1'); });
+$('#atIn').addEventListener('input', atCalc);
+$('#atOut').addEventListener('input', atCalc);
+$('#atCancel').onclick = closeAt;
+$('#atModal').onclick = e => { if (e.target.id === 'atModal') closeAt(); };
+async function saveAt(data){
+  const r = atRec;
+  const ts = await call('saveAttendance', S.adminWeek, r.day, r.shift, r.staffId, data);
+  if (!ts) return;
+  S.ts = ts; closeAt(); renderTs();
+  toast(data.reset ? 'Đã đặt lại đúng giờ ca' : data.absent ? `Đã ghi ${r.name} nghỉ` : 'Đã lưu giờ làm ✓');
+}
+$('#atSave').onclick = () => {
+  const work = $('#atMode .act').dataset.v === '1';
+  if (work && (!$('#atIn').value || !$('#atOut').value)) { toast('Nhập đủ giờ vào và giờ ra', true); return; }
+  saveAt({ absent: !work, in: $('#atIn').value, out: $('#atOut').value, note: $('#atNote').value });
+};
+$('#atReset').onclick = () => saveAt({ reset: true });
+
+/* Xuất Excel */
+$('#btnExport').onclick = async () => {
+  const r = await call('exportTimesheet', S.adminWeek);
+  if (!r) return;
+  const bin = atob(r.data), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const blob = new Blob([bytes], { type });
+  try {
+    const file = new File([blob], r.filename, { type });
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: r.filename });
+      return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('Đã tải ' + r.filename);
+};
+
 /* ---------- Tab nhân viên: thêm / sửa / xóa ---------- */
 const initials = n => { const w = String(n).replace(/\(.*?\)/g, ' ').trim().split(/\s+/); return (w[w.length-1] || '?').charAt(0).toUpperCase(); };
 function renderStaffTab(){
@@ -929,11 +1169,13 @@ function renderStaffTab(){
   const all = S.aw.staff.slice().sort((a,b) => a.name.localeCompare(b.name,'vi'));
   const on = all.filter(s => s.active), off = all.filter(s => !s.active);
   $('#nvTitle').textContent = `Danh sách · ${on.length} đang làm` + (off.length ? ` · ${off.length} đã nghỉ` : '');
-  const match = s => !q || s.name.toLowerCase().includes(q) || s.phone.includes(q);
-  const item = s => `<button class="nvi ${s.active ? '' : 'off'}" data-id="${esc(s.id)}">
-      <span class="avt">${esc(initials(s.name))}</span>
-      <span class="tx"><b>${esc(s.name)}</b><small>${esc(s.phone) || 'Chưa có SĐT'}</small></span>
-      ${s.active ? '' : '<span class="badge">Đã nghỉ</span>'}<span class="go">›</span></button>`;
+  const match = s => !q || s.name.toLowerCase().includes(q);
+  const item = s => `<div class="nvi ${s.active ? '' : 'off'}" data-id="${esc(s.id)}">
+      <button class="main" data-open="1"><span class="avt">${esc(initials(s.name))}</span>
+        <span class="tx"><b>${esc(s.name)}</b><small>${s.active ? 'Chạm để sửa' : 'Đã nghỉ'}</small></span></button>
+      <div class="rate"><button data-rd="-1" aria-label="Giảm lương ${esc(s.name)}">−</button>
+        <span class="v"><b>${kOf(rateOf(s))}</b><small>k/giờ</small></span>
+        <button data-rd="1" aria-label="Tăng lương ${esc(s.name)}">+</button></div></div>`;
   const a = on.filter(match), b = off.filter(match);
   let h = a.map(item).join('');
   if (b.length) h += '<div class="grp">Đã nghỉ</div>' + b.map(item).join('');
@@ -948,24 +1190,48 @@ function openNv(st){
   if ($('#toast')) $('#toast').hidden = true;
   $('#nvmTitle').textContent = st ? 'Sửa nhân viên' : 'Thêm nhân viên';
   $('#nvmName').value = st ? st.name : '';
-  $('#nvmPhone').value = st ? st.phone : '';
+  $('#nvmRate').value = kOf(rateOf(st));
+  rtHint();
   setSeg(st ? st.active : true);
   $('#nvmStatusWrap').hidden = $('#nvmDelWrap').hidden = !st;
   $('#nvmSave').textContent = st ? '💾 Lưu' : '+ Thêm';
   $('#nvModal').hidden = false;
   if (!st) setTimeout(() => $('#nvmName').focus(), 120);
 }
-function closeNv(){ $('#nvModal').hidden = true; $('#nvmName').blur(); $('#nvmPhone').blur(); }
+function closeNv(){ $('#nvModal').hidden = true; $('#nvmName').blur(); $('#nvmRate').blur(); }
+function rtHint(){ const d = parseK($('#nvmRate').value); $('#rtHint').textContent = d ? '= ' + money(d) + ' / giờ' : 'Nhập số tiền theo nghìn đồng, vd 18'; }
+function rtStep(n){ const d = Math.max(1000, (parseK($('#nvmRate').value) || rateOf(nvEditing)) + n * 1000); $('#nvmRate').value = kOf(d); rtHint(); }
+$('#rtMinus').onclick = () => rtStep(-1);
+$('#rtPlus').onclick = () => rtStep(1);
+$('#nvmRate').addEventListener('input', rtHint);
 $('#btnAddNv').onclick = () => openNv(null);
+/* Lương: lưu theo đồng, hiển thị theo nghìn (18 = 18.000đ/giờ) */
+const rateOf = s => (s && s.rate) || (S.aw && S.aw.settings.hourlyRate) || 18000;
+const kOf = d => (Math.round(d / 100) / 10).toLocaleString('vi-VN');
+const parseK = v => { const n = Number(String(v).replace(',', '.').replace(/[^\d.]/g, '')); return n > 0 ? Math.round(n * 1000) : 0; };
+
+const rateTimers = {};
 $('#nvList').addEventListener('click', e => {
-  const b = e.target.closest('.nvi'); if (!b) return;
-  openNv(S.aw.staff.find(s => s.id === b.dataset.id));
+  const row = e.target.closest('.nvi'); if (!row) return;
+  const st = S.aw.staff.find(s => s.id === row.dataset.id); if (!st) return;
+  const rd = e.target.closest('[data-rd]');
+  if (!rd) { if (e.target.closest('[data-open]')) openNv(st); return; }
+  const next = Math.min(1000000, Math.max(1000, rateOf(st) + Number(rd.dataset.rd) * 1000));
+  st.rate = next;
+  row.querySelector('.v b').textContent = kOf(next);
+  row.querySelector('.rate').classList.add('saving');
+  clearTimeout(rateTimers[st.id]);
+  rateTimers[st.id] = setTimeout(async () => {          /* bấm liên tục → chỉ lưu 1 lần sau khi dừng tay */
+    const list = await call('setStaffRate', st.id, st.rate);
+    if (list) { S.aw.staff = list; toast(`${st.name}: ${kOf(st.rate)}k/giờ ✓`); }
+    renderStaffTab();
+  }, 700);
 });
 $('#nvmStatus').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSeg(b.dataset.v === '1'); });
 $('#nvmCancel').onclick = closeNv;
 $('#nvModal').onclick = e => { if (e.target.id === 'nvModal') closeNv(); };
-$('#nvmName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmPhone').focus(); } });
-$('#nvmPhone').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmSave').click(); } });
+$('#nvmName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmRate').focus(); } });
+$('#nvmRate').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#nvmSave').click(); } });
 
 function applyStaffList(list){
   S.aw.staff = list;
@@ -979,7 +1245,9 @@ $('#nvmSave').onclick = async () => {
   const active = $('#nvmStatus .act').dataset.v === '1';
   if (nvEditing && nvEditing.active && !active &&
       !(await ask(`Chuyển "${name}" sang Đã nghỉ?\nTên sẽ không còn hiện cho nhân viên chọn.`, 'Xác nhận'))) return;
-  const obj = { name, phone: $('#nvmPhone').value, active };
+  const rate = parseK($('#nvmRate').value);
+  if (!rate) { toast('Lương/giờ không hợp lệ', true); $('#nvmRate').focus(); return; }
+  const obj = { name, active, rate };
   if (nvEditing) obj.id = nvEditing.id;
   const list = await call('saveStaff', obj);
   if (!list) return;
@@ -1002,6 +1270,7 @@ $('#nvmDelete').onclick = async () => {
 function renderSettings(){
   const s = S.aw.settings;
   $('#cfShop').value = s.shopName;
+  $('#cfRate').value = s.hourlyRate ? kOf(s.hourlyRate) : '';
   $('#cfShifts').innerHTML = s.shifts.map((x,i) => `
     <div class="shrow">
       <small>Ca thứ ${i+1} · tên ca và số người cần</small>
@@ -1018,7 +1287,7 @@ function renderSettings(){
 $('#btnSaveCf').onclick = async () => {
   const shifts = $$('#cfShifts .shrow').map(r => ({
     name: r.querySelector('.nm').value, time: r.querySelector('.tm').value, need: r.querySelector('.nd').value }));
-  const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts });
+  const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts, hourlyRate: parseK($('#cfRate').value) || '' });
   if (!out) return;
   S.aw.settings = out; S.init.shifts = out.shifts; S.init.shopName = out.shopName;
   setShop(out.shopName);
@@ -1074,6 +1343,7 @@ $('#btnRefresh').onclick = async () => {
   if (S.view === 'admin') {
     if (S.dirty && !(await askDiscard())) return;
     S.dirty = false; await loadAdmin();
+    if (S.tab === 'cc') await loadTimesheet();
   } else if (S.view === 'staff') {
     if (S.regDirty && !(await askDiscard())) return;
     S.regDirty = false;

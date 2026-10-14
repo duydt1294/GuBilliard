@@ -8,21 +8,23 @@ const crypto = require('crypto');
 const { getDb } = require('../lib/db');
 const A = require('../lib/auth');
 const G = require('../lib/google');
+const TS = require('../lib/timesheet');
 
 const CFG = require('../lib/config');
 const googleClientId = CFG.googleClientId;     /* Client ID Google – sửa trong config.js */
 const ownerEmails = CFG.ownerEmails;           /* Gmail chủ quán – sửa trong config.js */
 
-const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 const STATUS = ['MO', 'KHOA', 'CONG_BO'];
 const TZ = 'Asia/Ho_Chi_Minh';
 const DEFAULT_SETTINGS = {
   shopName: 'Gu Billiard',
   shifts: [
-    { name: 'Ca 1', time: '08:00 - 14:00', need: 2 },
-    { name: 'Ca 2', time: '14:00 - 20:00', need: 2 },
-    { name: 'Ca 3', time: '20:00 - 02:00', need: 2 }
-  ]
+    { name: 'Ca 1', time: '09:00 - 14:00', need: 2 },
+    { name: 'Ca 2', time: '14:00 - 19:00', need: 2 },
+    { name: 'Ca 3', time: '19:00 - 00:00', need: 2 }
+  ],
+  hourlyRate: 18000
 };
 
 class UserError extends Error {}
@@ -64,12 +66,13 @@ const newId = prefix => prefix + crypto.randomBytes(4).toString('hex').toUpperCa
 
 async function settings(db) {
   const s = await db.collection('settings').findOne({ _id: 'app' });
-  return s ? { shopName: s.shopName, shifts: s.shifts } : DEFAULT_SETTINGS;
+  return s ? { shopName: s.shopName, shifts: s.shifts, hourlyRate: s.hourlyRate != null ? s.hourlyRate : DEFAULT_SETTINGS.hourlyRate }
+           : DEFAULT_SETTINGS;
 }
 
 async function staffList(db) {
   const rows = await db.collection('staff').find({}).toArray();
-  return rows.map(r => ({ id: r._id, name: r.name, phone: r.phone || '', active: r.active !== false }))
+  return rows.map(r => ({ id: r._id, name: r.name, active: r.active !== false, rate: r.rate || null }))
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 }
 
@@ -90,6 +93,26 @@ async function assignedMap(db, week, byId) {
 const byIdOf = list => { const m = {}; list.forEach(s => { m[s.id] = s; }); return m; };
 
 /* ======================= ĐĂNG NHẬP ======================= */
+
+const MAX_FAILS = 8, FAIL_WINDOW_MS = 15 * 60e3;
+
+/** Chặn dò mật khẩu/PIN: sai quá MAX_FAILS lần trong 15 phút từ cùng một IP → tạm khóa. */
+async function checkLoginLimit(db, ip) {
+  const f = await db.collection('loginFails').findOne({ _id: ip });
+  if (f && f.count >= MAX_FAILS && Date.now() - new Date(f.first).getTime() < FAIL_WINDOW_MS) {
+    const mins = Math.ceil((FAIL_WINDOW_MS - (Date.now() - new Date(f.first).getTime())) / 60e3);
+    fail(`Nhập sai quá nhiều lần. Vui lòng thử lại sau ${mins} phút.`);
+  }
+}
+async function recordLoginFail(db, ip) {
+  const col = db.collection('loginFails');
+  const f = await col.findOne({ _id: ip });
+  if (!f || Date.now() - new Date(f.first).getTime() >= FAIL_WINDOW_MS) {
+    await col.updateOne({ _id: ip }, { $set: { count: 1, first: new Date() } }, { upsert: true });
+  } else {
+    await col.updateOne({ _id: ip }, { $inc: { count: 1 } });
+  }
+}
 
 async function currentUser(db, token) {
   const p = A.verify(token);
@@ -115,7 +138,7 @@ async function getStaffWeek(db, staffId, week) {
   let schedule = null;
   if (status === 'CONG_BO') schedule = await assignedMap(db, week, byIdOf(await staffList(db)));
   return {
-    status,
+    status: status === 'MO' && week < currentMonday() ? 'QUA' : status,
     slots: mine.map(keyOf),
     note: mine.length ? (mine[0].note || '') : '',
     updated: mine.length ? fmtTime(mine[0].updatedAt) : '',
@@ -144,6 +167,7 @@ const PUBLIC = {
 
   async saveRegistration(db, ctx, staffId, week, slots, note) {
     checkWeek(week);
+    if (week < currentMonday()) fail('Tuần này đã qua, không sửa đăng ký được nữa.');
     if ((await weekStatus(db, week)) !== 'MO') fail('Tuần này đã khóa đăng ký. Liên hệ chủ quán nếu cần đổi ca.');
     const st = await db.collection('staff').findOne({ _id: String(staffId || '') });
     if (!st || st.active === false) fail('Không tìm thấy nhân viên này.');
@@ -176,6 +200,7 @@ const PUBLIC = {
   async adminLogin(db, ctx, pass, week) {
     pass = String(pass || '').trim();
     if (!pass) fail('Vui lòng nhập mật khẩu hoặc mã PIN.');
+    await checkLoginLimit(db, ctx.ip);
     let user = null;
     if (CFG.ownerPassword() && A.safeEqual(pass, CFG.ownerPassword())) {
       user = { role: 'owner', sub: 'owner', tag: A.ownerTag(), name: 'Chủ quán' };
@@ -185,9 +210,11 @@ const PUBLIC = {
       }
     }
     if (!user) {
+      await recordLoginFail(db, ctx.ip);
       await new Promise(r => setTimeout(r, 900));          /* làm chậm dò mật khẩu */
       fail('Sai mật khẩu hoặc mã PIN.');
     }
+    await db.collection('loginFails').deleteOne({ _id: ctx.ip });
     const token = A.newToken(user);
     ctx.user = { role: user.role, name: user.name, id: user.sub };
     return { token, me: { name: user.name, role: user.role }, data: week ? await ADMIN.getAdminWeek(db, ctx, week) : null };
@@ -196,10 +223,19 @@ const PUBLIC = {
 
 /* ======================= QUẢN LÝ (cần đăng nhập) ======================= */
 
+/** Lương/giờ tính bằng đồng: '' / null → null (theo mức mặc định); số ngoài 1.000đ–10.000.000đ → lỗi. */
+function parseRate(v) {
+  if (v === undefined || v === null || String(v).trim() === '') return null;
+  const n = Math.round(Number(String(v).replace(/[^\d.]/g, '')));
+  if (!(n >= 1000) || n > 10000000) fail('Lương/giờ phải từ 1.000đ đến 10.000.000đ.');
+  return n;
+}
+
 const ADMIN = {
   async getAdminWeek(db, ctx, week) {
     checkWeek(week);
-    const [list, s, status] = await Promise.all([staffList(db), settings(db), weekStatus(db, week)]);
+    const [list, s, w] = await Promise.all([staffList(db), settings(db), db.collection('weeks').findOne({ _id: week })]);
+    const status = w && STATUS.includes(w.status) ? w.status : 'MO';
     const byId = byIdOf(list);
     const registered = {}, notes = {};
     (await db.collection('registrations').find({ week }).toArray()).forEach(r => {
@@ -210,6 +246,8 @@ const ADMIN = {
     });
     return {
       status, registered,
+      rev: (w && w.arev) || 0,
+      savedBy: (w && w.aby) || '', savedAt: w && w.aat ? fmtTime(w.aat) : '',
       assigned: await assignedMap(db, week, byId),
       notes: Object.values(notes),
       staff: list, settings: s,
@@ -217,16 +255,33 @@ const ADMIN = {
     };
   },
 
-  async saveAssignment(db, ctx, week, assigned) {
+  async saveAssignment(db, ctx, week, assigned, rev) {
     checkWeek(week);
+    /* Chỉ lưu khi lịch chưa bị ai khác sửa kể từ lúc mình tải (rev khớp). */
+    if (rev !== undefined && rev !== null) {
+      const r0 = Number(rev) || 0;
+      const filter = r0 === 0 ? { _id: week, $or: [{ arev: { $exists: false } }, { arev: 0 }] } : { _id: week, arev: r0 };
+      let ok = false;
+      try {
+        const u = await db.collection('weeks').updateOne(filter,
+          { $set: { arev: r0 + 1, aby: ctx.user.name, aat: new Date() } }, { upsert: r0 === 0 });
+        ok = u.matchedCount > 0 || u.upsertedCount > 0;
+      } catch (e) { if (e && e.code !== 11000) throw e; }
+      if (!ok) {
+        const w = await db.collection('weeks').findOne({ _id: week });
+        fail(`CONFLICT: Lịch tuần này vừa được ${(w && w.aby) || 'người khác'} lưu${w && w.aat ? ' lúc ' + fmtTime(w.aat) : ''}. Hãy tải lại để xem bản mới rồi xếp tiếp.`);
+      }
+    }
     const byId = byIdOf(await staffList(db));
-    const n = (await settings(db)).shifts.length;
+    const st = await settings(db), n = st.shifts.length;
+    const defs = st.shifts.map(x => TS.parseShiftTime(x.time));
     const now = new Date(), docs = [];
     Object.keys(assigned && typeof assigned === 'object' ? assigned : {}).filter(k => validKey(k, n)).sort(keyCmp)
       .forEach(k => {
         const [day, shift] = k.split('-').map(Number);
         Array.from(new Set((Array.isArray(assigned[k]) ? assigned[k] : []).map(String))).forEach(id => {
-          if (byId[id]) docs.push({ week, day, shift, staffId: id, name: byId[id].name, updatedAt: now });
+          if (byId[id]) docs.push({ week, day, shift, staffId: id, name: byId[id].name, updatedAt: now,
+            defIn: defs[shift] ? defs[shift].start : '', defOut: defs[shift] ? defs[shift].end : '' });
         });
       });
     await db.collection('assignments').deleteMany({ week });
@@ -247,21 +302,71 @@ const ADMIN = {
     const name = String(s.name || '').trim().replace(/\s+/g, ' ');
     if (!name) fail('Vui lòng nhập họ tên.');
     if (name.length > 60) fail('Tên quá dài.');
-    const phone = String(s.phone || '').trim().slice(0, 30);
     const active = s.active !== false;
     const id = String(s.id || '');
     const list = await staffList(db);
     const dup = list.find(x => x.active && x.id !== id && x.name.toLowerCase() === name.toLowerCase());
     if (dup && active) fail(`Đã có nhân viên tên "${name}". Hãy thêm chữ để phân biệt (vd: ${name} B).`);
+    const set = { name, active, updatedAt: new Date() };
+    if (s.rate !== undefined) set.rate = parseRate(s.rate);          /* null = theo lương mặc định */
     if (id) {
-      const r = await db.collection('staff').updateOne({ _id: id }, { $set: { name, phone, active, updatedAt: new Date() } });
+      const r = await db.collection('staff').updateOne({ _id: id }, { $set: set });
       if (!r.matchedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
     } else {
       const used = new Set(list.map(x => x.id));
       let nid; do { nid = newId('NV'); } while (used.has(nid));
-      await db.collection('staff').insertOne({ _id: nid, name, phone, active: true, createdAt: new Date() });
+      if (set.rate == null) set.rate = (await settings(db)).hourlyRate || null;   /* nhân viên mới: lương mặc định */
+      await db.collection('staff').insertOne(Object.assign({ _id: nid, createdAt: new Date() }, set, { active: true }));
     }
     return staffList(db);
+  },
+
+  /** Tăng/giảm lương nhanh từ danh sách nhân viên (đồng/giờ). */
+  async setStaffRate(db, ctx, id, rate) {
+    const r = parseRate(rate);
+    if (r == null) fail('Lương/giờ không hợp lệ.');
+    const u = await db.collection('staff').updateOne({ _id: String(id || '') }, { $set: { rate: r, updatedAt: new Date() } });
+    if (!u.matchedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
+    return staffList(db);
+  },
+
+  /** Bảng chấm công & lương của tuần. */
+  async getTimesheet(db, ctx, week) {
+    checkWeek(week);
+    return timesheetOf(db, week);
+  },
+
+  /** Sửa giờ vào/ra thực tế, đánh dấu nghỉ, hoặc đặt lại theo giờ ca (reset). */
+  async saveAttendance(db, ctx, week, day, shift, staffId, data) {
+    checkWeek(week);
+    day = Number(day); shift = Number(shift); staffId = String(staffId || '');
+    data = data || {};
+    const asg = await db.collection('assignments').findOne({ week, day, shift, staffId });
+    if (!asg) fail('Người này không còn được xếp ca đó – hãy tải lại.');
+    const _id = [week, day, shift, staffId].join('|');
+    if (data.reset) {
+      await db.collection('attendance').deleteOne({ _id });
+    } else {
+      const absent = !!data.absent;
+      let tin = '', tout = '';
+      if (!absent) {
+        tin = TS.normTime(data.in); tout = TS.normTime(data.out);
+        if (!tin || !tout) fail('Giờ vào/ra không hợp lệ (dạng 19:00).');
+        if (tin === tout) fail('Giờ vào và giờ ra không được trùng nhau.');
+      }
+      await db.collection('attendance').updateOne({ _id }, { $set: { week, day, shift, staffId, absent, in: tin, out: tout,
+        note: String(data.note || '').slice(0, 200), by: ctx.user.name, at: new Date() } }, { upsert: true });
+    }
+    return timesheetOf(db, week);
+  },
+
+  /** Xuất Excel giống bảng lương của quán. Trả về base64 để tải về. */
+  async exportTimesheet(db, ctx, week) {
+    checkWeek(week);
+    const ts = await timesheetOf(db, week);
+    const buf = await require('../lib/excel').buildWorkbook(ts, week, DAYS);
+    const [y, m, d] = week.split('-');
+    return { filename: `Luong-tuan-${d}-${m}-${y}.xlsx`, data: Buffer.from(buf).toString('base64') };
   },
 
   /** Xóa hẳn: bỏ nhân viên và các ca đăng ký / đã xếp từ tuần này trở đi. Lịch sử tuần trước vẫn giữ. */
@@ -270,7 +375,7 @@ const ADMIN = {
     const r = await db.collection('staff').deleteOne({ _id: id });
     if (!r.deletedCount) fail('Không tìm thấy nhân viên (có thể đã bị xóa).');
     const cur = currentMonday();
-    await Promise.all(['registrations', 'assignments'].map(c =>
+    await Promise.all(['registrations', 'assignments', 'attendance'].map(c =>
       db.collection(c).deleteMany({ staffId: id, week: { $gte: cur } })));
     return staffList(db);
   },
@@ -284,10 +389,28 @@ const ADMIN = {
       need: Math.max(0, Math.min(20, parseInt(x && x.need, 10) || 0))
     }));
     if (!shifts.length) fail('Cần ít nhất 1 ca.');
-    await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, updatedAt: new Date() } }, { upsert: true });
-    return { shopName, shifts };
+    const cur = await settings(db);
+    let hourlyRate = cur.hourlyRate;
+    if (s.hourlyRate !== undefined && String(s.hourlyRate).trim() !== '') {
+      hourlyRate = parseInt(String(s.hourlyRate).replace(/[^\d]/g, ''), 10);
+      if (!(hourlyRate >= 0) || hourlyRate > 10000000) fail('Lương mặc định/giờ không hợp lệ.');
+    }
+    await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, hourlyRate, updatedAt: new Date() } }, { upsert: true });
+    return { shopName, shifts, hourlyRate };
   }
 };
+
+async function timesheetOf(db, week) {
+  const [assignments, attendance, staff, st] = await Promise.all([
+    db.collection('assignments').find({ week }).toArray(),
+    db.collection('attendance').find({ week }).toArray(),
+    staffList(db), settings(db)
+  ]);
+  const ts = TS.buildTimesheet({ assignments, attendance, staff, settings: st, days: DAYS });
+  ts.week = week;
+  ts.shifts = st.shifts;
+  return ts;
+}
 
 /* ======================= CHỈ CHỦ QUÁN: người quản lý ======================= */
 
@@ -376,7 +499,8 @@ module.exports = async function handler(req, res) {
 
   try {
     const db = await getDb();
-    const ctx = { user: await currentUser(db, token) };
+    const ip = String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim().slice(0, 64);
+    const ctx = { user: await currentUser(db, token), ip };
     let fn;
     if (Object.prototype.hasOwnProperty.call(PUBLIC, fnName)) fn = PUBLIC[fnName];
     else if (Object.prototype.hasOwnProperty.call(ADMIN, fnName)) {
