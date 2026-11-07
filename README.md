@@ -83,20 +83,20 @@ Trang nhân viên → chọn tên → thẻ **⏱️ Chấm công** ở trên c�
 - **🟢 Nhận ca / 🔴 Kết ca**: ô giờ **mặc định là giờ hiện tại**, nhân viên sửa lại đúng thực tế trước khi xác nhận (vd vào lúc 9:00 nhưng 9:20 mới nhớ bấm). App gợi ý sẵn ca trong lịch hôm nay. Chọn ca **không có trong lịch đã công bố** → app cảnh báo, nút đổi thành *Vẫn nhận ca*; vẫn được tính công, chủ quán thấy nhãn **ngoài lịch**.
 - Đã nhận ca thì chỉ còn nút **Kết ca**; kết ca xong không còn nút Nhận ca. **Làm 2 ca liền nhau** chỉ cần nhận ca 1 lần lúc vào, kết ca lúc về – ca còn lại trong lịch ghi *Gộp ca*, không cộng giờ 2 lần.
 - **Quên kết ca**: lần mở app sau (kể cả hôm sau) thẻ báo *"Bạn chưa kết Ca …"* → nhập giờ đã về thực tế (vd 23:30 hôm qua). Phải kết ca cũ rồi mới nhận ca mới.
-- **Quên chấm công cả ca** (hoặc làm thêm ca cách quãng): bấm **Nhập bù** → chọn *Hôm qua / Hôm nay*, chọn ca, nhập giờ vào và tick *Đã làm xong ca này* để nhập luôn giờ ra.
-- Kiểm tra: giờ vào/ra không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca 1 lần/ngày; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ), 0:00–5:59 sáng thuộc ngày làm việc hôm trước. Ca cũ hơn hôm qua: báo chủ quán sửa.
+- **Quên chấm công cả ca** (hoặc làm thêm ca cách quãng): bấm **Nhập bù** → chọn **ngày bất kỳ trong tháng này** (danh sách ghi rõ ngày nào còn ca trong lịch *⚠️ chưa chấm*), chọn ca, nhập giờ vào và tick *Đã làm xong ca này* để nhập luôn giờ ra.
+- Kiểm tra: giờ vào/ra không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca 1 lần/ngày; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ), 0:00–5:59 sáng thuộc ngày làm việc hôm trước. Không chấm trước cho ngày chưa tới; ngày của tháng trước báo chủ quán sửa (riêng ngày cuối tháng trước vẫn nhập bù được vào mùng 1).
 - Bấm nhầm: nút **Hủy** trong 30 phút sau khi bấm.
 - App lưu cả **giờ bấm thật**. Nếu giờ khai lệch quá 15 phút, tab Chấm công ghi rõ, vd *"khai vào 9:00, bấm lúc 9:40"*.
 
 **Cách tính công** (tab 💰 Chấm công), thứ tự ưu tiên:
 
 1. **Chủ quán sửa** giờ vào/ra → dùng đúng giờ đã nhập (không làm tròn).
-2. **Nhân viên tự chấm** → theo giờ bấm thực tế, **làm tròn 0,25 giờ** (5 giờ 7 phút → 5 giờ; 5 giờ 8 phút → 5,25 giờ).
+2. **Nhân viên tự chấm** → theo đúng giờ nhân viên nhập (giờ thực tế).
 3. **Có lịch mà không bấm** → **0 giờ**, nhãn đỏ *Không chấm* (ca hôm nay/sắp tới: *Chưa chấm*). Chủ quán chạm vào để nhập giờ nếu người đó thật sự có đi làm.
 
 Quy tắc 3 áp dụng từ ngày **Bắt buộc tự chấm công từ ngày** trong tab ⚙️ Cài đặt (tự đặt là ngày hôm sau lần đầu chạy bản này; chỉ chủ quán đổi được). Các ngày trước đó giữ cách tính cũ: không bấm = đúng giờ ca – bảng lương các tuần cũ không bị thay đổi.
 
-Nhãn khác: *Tự chấm*, *Chưa kết ca* (tạm tính đến hết giờ ca), *ngoài lịch*, *Gộp ca*, *Đã sửa*. Nút **↺ Bỏ sửa** để quay lại kết quả chấm công. File Excel tính giống hệt app: ô TỔNG NGÀY của giờ tự chấm có công thức làm tròn 0,25; ô "Không chấm" màu đỏ = 0 giờ.
+Nhãn khác: *Tự chấm*, *Chưa kết ca* (tạm tính đến hết giờ ca), *ngoài lịch*, *Gộp ca*, *Đã sửa*. Nút **↺ Bỏ sửa** để quay lại kết quả chấm công. Số giờ hiển thị **2 số thập phân** (10 phút = 0,17 giờ; 2 giờ 14 phút = 2,23 giờ), lương tính theo thời gian thực tế như bảng lương của quán. File Excel tính giống hệt app; ô "Không chấm" màu đỏ = 0 giờ.
 
 > Nhân viên không đăng nhập nên ai có link cũng chấm hộ được tên người khác – giờ bấm thật luôn được lưu để chủ quán đối chiếu.
 

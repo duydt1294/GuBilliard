@@ -228,37 +228,48 @@ const openClockQuery = (staffId, nowMs) => ({ staffId, out: '', inTs: { $gt: now
 
 function clockView(c, nowMs) {
   return { id: c._id, date: c.date, day: c.day, shift: c.shift, in: c.in, out: c.out || '',
-    scheduled: !!c.scheduled, minutes: c.out ? TS.round15(TS.workedMinutes(c.in, c.out)) : 0,
+    scheduled: !!c.scheduled, minutes: c.out ? TS.workedMinutes(c.in, c.out) : 0,
     late: !c.out && nowMs - c.inTs > CLOCK_MAX_MIN * 60e3,          /* quên kết ca: giờ hiện tại đã quá 16 giờ */
     canUndo: nowMs - new Date(c.inAt).getTime() < CLOCK_UNDO_MS };
 }
 
-/** Lịch & chấm công của 1 ngày làm việc. */
-async function dayClock(db, staffId, date, nowMs) {
-  const week = mondayOf(date), day = dayIdx(date);
-  const [status, asg, list] = await Promise.all([
-    weekStatus(db, week),
-    db.collection('assignments').find({ week, day, staffId }).toArray(),
-    db.collection('clocks').find({ staffId, date }).toArray()
+/** Ngày sớm nhất được nhập bù: mùng 1 tháng này (luôn cho phép hôm qua – vd ca đêm 31 nhập vào mùng 1). */
+const backfillFrom = today => { const m1 = today.slice(0, 8) + '01', y = addDay(today, -1); return y < m1 ? y : m1; };
+
+/** Lịch & chấm công từng ngày từ `from` tới `to` (mới nhất trước) – để nhân viên chọn ngày nhập bù. */
+async function rangeClock(db, staffId, from, to, nowMs) {
+  const weeks = [];
+  for (let w = mondayOf(from); w <= to; w = addDay(w, 7)) weeks.push(w);
+  const [stats, asg, clocks] = await Promise.all([
+    db.collection('weeks').find({ _id: { $in: weeks } }).toArray(),
+    db.collection('assignments').find({ staffId, week: { $in: weeks } }).toArray(),
+    db.collection('clocks').find({ staffId, date: { $gte: from, $lte: to } }).toArray()
   ]);
-  const published = status === 'CONG_BO';
-  return { date, week, day, published,
-    mine: published ? Array.from(new Set(asg.map(a => a.shift))).sort((a, b) => a - b) : [],
-    clocks: list.sort((a, b) => a.inTs - b.inTs).map(c => clockView(c, nowMs)) };
+  const pub = new Set(stats.filter(w => w.status === 'CONG_BO').map(w => w._id));
+  const out = [];
+  for (let d = to; d >= from; d = addDay(d, -1)) {
+    const week = mondayOf(d), day = dayIdx(d), published = pub.has(week);
+    out.push({ date: d, day, published,
+      mine: published ? Array.from(new Set(asg.filter(a => a.week === week && a.day === day).map(a => a.shift))).sort((a, b) => a - b) : [],
+      clocks: clocks.filter(c => c.date === d).sort((a, b) => a.inTs - b.inTs).map(c => clockView(c, nowMs)) });
+  }
+  return out;
 }
 
-/** Trạng thái chấm công của 1 nhân viên: hôm nay, hôm qua (để nhập bù), ca đang làm / quên kết. */
+/** Trạng thái chấm công của 1 nhân viên: hôm nay, các ngày trong tháng (để nhập bù), ca đang làm / quên kết. */
 async function clockState(db, staffId) {
   const st = await activeStaff(db, staffId);
   const nowMs = Date.now(), date = bizDate(nowMs);
-  const [sets, t, prev, open] = await Promise.all([
-    settings(db), dayClock(db, st._id, date, nowMs), dayClock(db, st._id, addDay(date, -1), nowMs),
+  const [sets, days, open] = await Promise.all([
+    settings(db), rangeClock(db, st._id, backfillFrom(date), date, nowMs),
     db.collection('clocks').find(openClockQuery(st._id, nowMs)).sort({ inTs: 1 }).limit(1).toArray()
   ]);
+  const t = days[0];
   return {
-    nowMs, date, week: t.week, day: t.day, published: t.published, mine: t.mine, today: t.clocks,
-    required: date >= sets.clockFrom,
-    prev: { date: prev.date, day: prev.day, published: prev.published, mine: prev.mine, clocks: prev.clocks },
+    nowMs, date, week: mondayOf(date), day: t.day, published: t.published, mine: t.mine, today: t.clocks,
+    required: date >= sets.clockFrom, clockFrom: sets.clockFrom,
+    days,                                                    /* hôm nay → mùng 1, mới nhất trước */
+    recent: days.slice(1).flatMap(d => d.clocks.filter(c => c.out && c.canUndo)),   /* ca ngày trước vừa nhập bù */
     open: open[0] ? clockView(open[0], nowMs) : null
   };
 }
@@ -300,7 +311,10 @@ const PUBLIC = {
     if (!tin) fail('Giờ nhận ca không hợp lệ (dạng 19:00).');
     const nowMs = Date.now(), today = bizDate(nowMs);
     const date = opt.date ? String(opt.date) : today;
-    if (date !== today && date !== addDay(today, -1)) fail('Chỉ chấm công được cho hôm nay hoặc hôm qua. Ca cũ hơn hãy báo chủ quán sửa giúp.');
+    const dd = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date + 'T00:00:00Z') : null;
+    if (!dd || isNaN(dd) || dd.toISOString().slice(0, 10) !== date) fail('Ngày không hợp lệ.');
+    if (date > today) fail('Không chấm công trước cho ngày chưa tới.');
+    if (date < backfillFrom(today)) fail('Chỉ nhập bù được các ngày trong tháng này. Ngày cũ hơn hãy báo chủ quán sửa giúp.');
     const inTs = atMs(date, tin);
     if (inTs > nowMs + CLOCK_EARLY_MS) fail('Giờ nhận ca không được sau giờ hiện tại.');
     let tout = '', outTs = null;
