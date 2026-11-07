@@ -78,7 +78,12 @@ Nhân viên đăng ký → chủ quán **🔒 Khóa đăng ký** → xếp ca (h
 
 ## Nhân viên tự chấm công
 
-Trang nhân viên → chọn tên → thẻ **⏱️ Chấm công** ở trên cùng:
+Trang nhân viên → chọn tên → 2 tab:
+
+- **⏱️ Ca làm**: nút Nhận ca / Kết ca và bảng đăng ký ca tuần.
+- **📋 Đã chấm công**: các ca đã chấm trong tháng (nhóm theo ngày, tổng số ca và số giờ), nhắc những ngày có ca trong lịch chưa chấm kèm nút *Nhập bù*.
+
+Thẻ **⏱️ Chấm công** ở tab Ca làm:
 
 - **🟢 Nhận ca / 🔴 Kết ca**: ô giờ **mặc định là giờ hiện tại**, nhân viên sửa lại đúng thực tế trước khi xác nhận (vd vào lúc 9:00 nhưng 9:20 mới nhớ bấm). App gợi ý sẵn ca trong lịch hôm nay. Chọn ca **không có trong lịch đã công bố** → app cảnh báo, nút đổi thành *Vẫn nhận ca*; vẫn được tính công, chủ quán thấy nhãn **ngoài lịch**.
 - Đã nhận ca thì chỉ còn nút **Kết ca**; kết ca xong không còn nút Nhận ca. **Làm 2 ca liền nhau** chỉ cần nhận ca 1 lần lúc vào, kết ca lúc về – ca còn lại trong lịch ghi *Gộp ca*, không cộng giờ 2 lần.

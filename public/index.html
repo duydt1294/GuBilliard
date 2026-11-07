@@ -83,6 +83,18 @@ table.sched tr>th:first-child{width:52px}
 .tabs button{background:transparent;color:var(--g);min-height:50px;padding:4px 2px;font-size:12px;white-space:nowrap;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15}
 .tabs button span{font-size:19px}
 .tabs button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* Tab trang nhân viên */
+.stabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#e3e9e6;padding:4px;border-radius:14px;margin-bottom:12px}
+.stabs button{background:transparent;color:var(--g);min-height:50px;padding:4px 2px;font-size:14px;white-space:nowrap;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px}
+.stabs button span{font-size:18px}
+.stabs button.act{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.hsum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.hsum div{background:var(--gl);border-radius:12px;padding:10px 12px}
+.hsum b{display:block;font-size:22px;color:var(--g)}
+.hsum small{color:var(--mu);font-size:13px}
+.hday{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 2px;font-size:14px}
+.hday b{font-size:15px}
+.hday span{color:var(--mu);white-space:nowrap}
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .acts .wide{grid-column:1/-1}
 .acts button{font-size:15px;padding:8px 6px;white-space:nowrap}
@@ -260,6 +272,12 @@ input[type=time]{min-height:46px}
     </div>
 
     <div id="staffBody" hidden>
+      <div class="stabs" id="stTabs">
+        <button data-st="main" class="act"><span>⏱️</span>Ca làm</button>
+        <button data-st="his"><span>📋</span>Đã chấm công</button>
+      </div>
+      <div id="stHis" hidden></div>
+      <div id="stMain">
       <div id="clockCard" class="card" hidden></div>
       <div id="stWeek" class="weeknav"></div>
       <div id="stStatus" class="status"></div>
@@ -273,8 +291,9 @@ input[type=time]{min-height:46px}
         <p class="hint" id="saveInfo" style="margin:8px 0 0"></p>
       </div>
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
+      </div>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.2</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.3</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -627,7 +646,7 @@ function setShop(name){ $('#shopName').textContent = name; document.title = 'L�
 
 function updBars(){
   const st = S.st;
-  const staffOn = S.view === 'staff' && !!S.staffId && !!st && !$('#staffBody').hidden && st.status === 'MO';
+  const staffOn = S.view === 'staff' && !!S.staffId && !!st && !$('#staffBody').hidden && st.status === 'MO' && S.stTab !== 'his';
   $('#staffBar').hidden = !staffOn;
   if (staffOn) {
     $('#staffBar').classList.toggle('dirty', S.regDirty);
@@ -649,7 +668,7 @@ $('#staffSel').onchange = async () => {
   const v = $('#staffSel').value;
   if (S.regDirty && !(await askDiscard())) { $('#staffSel').value = S.staffId; return; }
   S.regDirty = false; S.staffId = v; store('staffId', v); S.st = null;
-  S.clock = null; renderClock();
+  S.clock = null; renderClock(); stTab('main');
   if (!v) { $('#staffBody').hidden = true; updBars(); return; }
   loadStaffWeek();
   call('getClock', v).then(c => { if (c && S.staffId === v) setClock(c); });
@@ -798,7 +817,7 @@ function pickShift(d, isToday){
 function setClock(c){ S.clock = c; if (c) S.clockSkew = c.nowMs - Date.now(); renderClock(); }
 function renderClock(){
   const c = S.clock, I = S.init, el = $('#clockCard');
-  if (!c || !S.staffId) { el.hidden = true; return; }
+  if (!c || !S.staffId) { el.hidden = true; renderHistory(); return; }
   el.hidden = false;
   const shName = i => esc((I.shifts[i] || {}).name || ('Ca ' + (i + 1)));
   const sched = !c.published ? 'Lịch tuần này chưa công bố.'
@@ -826,12 +845,49 @@ function renderClock(){
     h += `<div class="clkon done"><span>✅</span><div><b>Đã kết ca hôm nay · ${hrs(tot)}</b><small>Làm 2 ca liền nhau thì chỉ cần nhận ca 1 lần, kết ca khi về.</small></div></div>
       <button class="link full" data-ck="fix">Nhập bù / làm thêm ca khác</button>`;
   }
-  /* Ca đã xong hôm nay + ca hôm qua vừa nhập bù (còn hủy được) */
-  const rows = c.today.filter(x => x.out).concat(c.recent);
-  if (rows.length) h += '<ul class="clkl">' + rows.map(x => `<li><span>✓ ${shName(x.shift)}${x.date !== c.date ? ' <span class="mu">' + esc(dayName(x)) + '</span>' : ''}${x.scheduled ? '' : ' <span class="bd bd-warn">ngoài lịch</span>'}</span>
-    <span>${showT(x.in)} – ${showT(x.out)} · <b>${hrs(x.minutes)}</b>${x.canUndo ? `<button class="undo" data-ck="undo" data-id="${esc(x.id)}">Hủy</button>` : ''}</span></li>`).join('') + '</ul>';
+  /* Ca vừa lưu (còn hủy được trong 30 phút) hiện ngay dưới nút để sửa nhầm; danh sách đầy đủ ở tab "Đã chấm công" */
+  const rows = c.today.filter(x => x.out && x.canUndo).concat(c.recent);
+  if (rows.length) h += clkRows(rows, c);
+  const n = c.days.reduce((k, d) => k + d.clocks.length, 0);
+  if (n) h += `<button class="link full" data-st-go="his">📋 Xem ${n} ca đã chấm công tháng này</button>`;
+  el.innerHTML = h;
+  renderHistory();
+}
+const clkRows = (rows, c) => '<ul class="clkl">' + rows.map(x => `<li><span>${x.out ? '✓' : '<span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g2)"></span>'} ${esc((S.init.shifts[x.shift] || {}).name || '')}${c && x.date !== c.date ? ' <span class="mu">' + esc(dayName(x)) + '</span>' : ''}${x.scheduled ? '' : ' <span class="bd bd-warn">ngoài lịch</span>'}</span>
+    <span>${showT(x.in)} – ${x.out ? showT(x.out) + ' · <b>' + hrs(x.minutes) + '</b>' : '<b>đang làm</b>'}${x.canUndo ? `<button class="undo" data-ck="undo" data-id="${esc(x.id)}">Hủy</button>` : ''}</span></li>`).join('') + '</ul>';
+
+/** Tab "Đã chấm công": các ca đã chấm trong tháng, nhóm theo ngày, mới nhất trước. */
+function renderHistory(){
+  const c = S.clock, el = $('#stHis');
+  if (!c) { el.innerHTML = ''; return; }
+  const days = c.days.filter(d => d.clocks.length);
+  const all = days.flatMap(d => d.clocks), tot = all.reduce((m, x) => m + x.minutes, 0);
+  const month = c.date.slice(5, 7).replace(/^0/, '') + '/' + c.date.slice(0, 4);
+  let h = `<div class="card"><h3>📋 Đã chấm công · tháng ${month}</h3>
+    <div class="hsum"><div><b>${all.filter(x => x.out).length}</b><small>ca đã xong</small></div><div><b>${hN(tot)}</b><small>giờ đã chấm</small></div></div>`;
+  if (!days.length) h += '<p class="hint" style="margin:14px 0 0">Tháng này bạn chưa chấm công ca nào.</p>';
+  days.forEach(d => {
+    const m = d.clocks.reduce((k, x) => k + x.minutes, 0);
+    h += `<div class="hday"><b>${d.date === c.date ? 'Hôm nay · ' : ''}${esc(dayName(d))}</b><span>${hrs(m)}</span></div>` + clkRows(d.clocks);
+  });
+  /* ca trong lịch mà chưa chấm (từ ngày bắt buộc, các ngày đã qua) */
+  const miss = c.days.filter((d, k) => k > 0 && d.date >= c.clockFrom && missing(d).length);
+  if (miss.length) h += `<p class="ckwarn" style="margin-top:14px">⚠️ Còn ${miss.length} ngày có ca trong lịch chưa chấm công: ${miss.slice(0, 4).map(d => esc(dm(fromIso(d.date)))).join(', ')}${miss.length > 4 ? '…' : ''}. Không chấm sẽ không được tính giờ.</p>
+    <button class="sec full" data-ck="fix" style="margin-top:10px">📝 Nhập bù giờ thực tế</button>`;
+  h += '<p class="hint" style="margin:12px 0 0">Đây là giờ bạn tự chấm. Nếu chủ quán chỉnh lại giờ khi tính lương thì giờ tính lương có thể khác.</p></div>';
   el.innerHTML = h;
 }
+
+/* Chuyển tab trang nhân viên */
+function stTab(name){
+  S.stTab = name;
+  $$('#stTabs button').forEach(b => b.classList.toggle('act', b.dataset.st === name));
+  $('#stMain').hidden = name !== 'main';
+  $('#stHis').hidden = name !== 'his';
+  updBars();
+  window.scrollTo(0, 0);
+}
+$('#stTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) stTab(b.dataset.st); });
 
 let ckMode = 'in', ckDayV = '';
 const staffName = () => (S.init.staff.find(x => x.id === S.staffId) || {}).name || '';
@@ -944,7 +1000,8 @@ $('#ckOk').onclick = async () => {
   else if (done) toast(`Đã lưu ${name} ${showT(t)} – ${showT(out)} ✓`);
   else toast(`Đã nhận ${name} lúc ${showT(t)} ✓`);
 };
-$('#clockCard').addEventListener('click', async e => {
+const onClockClick = async e => {
+  const go = e.target.closest('[data-st-go]'); if (go) { stTab(go.dataset.stGo); return; }
   const b = e.target.closest('[data-ck]'); if (!b) return;
   const act = b.dataset.ck, id = b.dataset.id;
   const fresh = await call('getClock', S.staffId);          /* lấy trạng thái mới nhất trước khi mở */
@@ -962,7 +1019,9 @@ $('#clockCard').addEventListener('click', async e => {
   if (act === 'out' && !fresh.open) { toast('Ca này đã được kết.'); return; }
   if (act !== 'out' && fresh.open) { toast('Bạn chưa kết ca trước – hãy kết ca đó trước.', true); return; }
   openClock(act);
-});
+};
+$('#clockCard').addEventListener('click', onClockClick);
+$('#stHis').addEventListener('click', onClockClick);
 /* Mở lại app (vd sáng hôm sau) → cập nhật chấm công */
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || S.view !== 'staff' || !S.staffId || !S.clock || !$('#ckModal').hidden) return;
