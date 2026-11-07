@@ -2,7 +2,7 @@
 
 Web app cho quán bida: nhân viên đăng ký ca hằng tuần (Thứ 2 – Chủ nhật, 3 ca/ngày) trên điện thoại, chủ quán/người quản lý duyệt, xếp ca và công bố lịch.
 
-- **Nhân viên:** mở link → chọn tên → chạm ô để đăng ký ca. Không cần tài khoản.
+- **Nhân viên:** mở link → chọn tên → chạm ô để đăng ký ca, bấm **Nhận ca / Kết ca** để tự chấm công. Không cần tài khoản.
 - **Chủ quán:** đăng nhập bằng **Gmail** (có sẵn `duydemo1294@gmail.com`, `hangochien2023@gmail.com`) (mật khẩu dự phòng `OWNER_PASSWORD` trong `config.js`, mặc định tắt). Tạo mã PIN cho từng người quản lý.
 - **Người quản lý:** đăng nhập bằng mã PIN, xếp ca, chấm công, quản lý nhân viên.
 - **Chấm công & lương:** ai được xếp ca coi như đi làm đúng giờ ca; chủ quán chỉ sửa giờ vào/ra thực tế hoặc đánh dấu nghỉ. App tự tính giờ (kể cả ca qua nửa đêm) và lương, **xuất Excel** đúng mẫu bảng lương của quán.
@@ -23,7 +23,7 @@ lib/excel.js        Xuất bảng lương tuần ra Excel
 scripts/dev-server.js  Chạy thử trên máy (npm run dev)
 ```
 
-Collection trong MongoDB (tự tạo khi dùng): `staff`, `registrations`, `assignments`, `attendance` (giờ đã sửa / nghỉ), `weeks`, `settings`, `managers`, `loginFails`.
+Collection trong MongoDB (tự tạo khi dùng): `staff`, `registrations`, `assignments`, `attendance` (giờ chủ quán sửa / nghỉ), `clocks` (nhân viên tự chấm công), `weeks`, `settings`, `managers`, `loginFails`.
 
 ## Triển khai
 
@@ -75,6 +75,29 @@ Nhân viên đăng ký → chủ quán **🔒 Khóa đăng ký** → xếp ca (h
 - Được **xếp dư** so với số người cần của ca (hiện màu xanh dương "dư N"). *Xếp nhanh* chỉ điền tới đủ số người cần.
 - Nhiều người cùng xếp ca: nếu lịch vừa được người khác lưu, app báo và cho tải bản mới – không ghi đè mất dữ liệu của nhau.
 - Nhân viên không sửa được đăng ký của các tuần đã qua.
+
+## Nhân viên tự chấm công
+
+Trang nhân viên → chọn tên → thẻ **⏱️ Chấm công** ở trên cùng:
+
+- **🟢 Nhận ca**: app gợi ý sẵn ca trong lịch hôm nay và điền **giờ hiện tại** (sửa được nếu quên bấm). Chọn ca **không có trong lịch đã công bố** (hoặc tuần chưa công bố lịch) → app cảnh báo, nút đổi thành *Vẫn nhận ca*; ca đó vẫn được tính công nhưng chủ quán thấy nhãn **ngoài lịch**.
+- **🔴 Kết ca**: điền sẵn giờ hiện tại, hiện số giờ làm; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ). 0:00–5:59 sáng vẫn tính là ngày làm việc hôm trước.
+- Đã nhận ca thì chỉ còn nút **Kết ca**; kết ca xong không còn nút Nhận ca. **Làm 2 ca liền nhau** (vd Ca 1 + Ca 2) chỉ cần nhận ca 1 lần lúc vào và kết ca lúc về – ca còn lại trong lịch được ghi *Gộp ca*, không cộng giờ 2 lần. Làm 2 ca cách quãng (vd Ca 1 và Ca 3) thì bấm dòng nhỏ *Làm thêm một ca khác*.
+- Bấm nhầm: **Hủy lượt nhận ca** trong 30 phút đầu.
+- Giới hạn: giờ nhận ca lùi tối đa 12 giờ, không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca chỉ chấm 1 lần/ngày. Nhận ca quá 20 giờ chưa kết → coi như quên kết ca, nhân viên vẫn nhận được ca mới.
+- App lưu cả **giờ bấm thật**. Nếu giờ khai lệch quá 15 phút, tab Chấm công ghi rõ, vd *"khai vào 9:00, bấm lúc 9:40"*.
+
+**Cách tính công** (tab 💰 Chấm công), thứ tự ưu tiên:
+
+1. **Chủ quán sửa** giờ vào/ra → dùng đúng giờ đã nhập (không làm tròn).
+2. **Nhân viên tự chấm** → theo giờ bấm thực tế, **làm tròn 0,25 giờ** (5 giờ 7 phút → 5 giờ; 5 giờ 8 phút → 5,25 giờ).
+3. **Có lịch mà không bấm** → **0 giờ**, nhãn đỏ *Không chấm* (ca hôm nay/sắp tới: *Chưa chấm*). Chủ quán chạm vào để nhập giờ nếu người đó thật sự có đi làm.
+
+Quy tắc 3 áp dụng từ ngày **Bắt buộc tự chấm công từ ngày** trong tab ⚙️ Cài đặt (tự đặt là ngày hôm sau lần đầu chạy bản này; chỉ chủ quán đổi được). Các ngày trước đó giữ cách tính cũ: không bấm = đúng giờ ca – bảng lương các tuần cũ không bị thay đổi.
+
+Nhãn khác: *Tự chấm*, *Chưa kết ca* (tạm tính đến hết giờ ca), *ngoài lịch*, *Gộp ca*, *Đã sửa*. Nút **↺ Bỏ sửa** để quay lại kết quả chấm công. File Excel tính giống hệt app: ô TỔNG NGÀY của giờ tự chấm có công thức làm tròn 0,25; ô "Không chấm" màu đỏ = 0 giờ.
+
+> Nhân viên không đăng nhập nên ai có link cũng chấm hộ được tên người khác – giờ bấm thật luôn được lưu để chủ quán đối chiếu.
 
 ## Chấm công & lương
 

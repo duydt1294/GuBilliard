@@ -67,9 +67,21 @@ const keyCmp = (a, b) => { const x = a.split('-').map(Number), y = b.split('-').
 const newId = prefix => prefix + crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
 
 async function settings(db) {
-  const s = await db.collection('settings').findOne({ _id: 'app' });
-  return s ? { shopName: s.shopName, shifts: s.shifts, hourlyRate: s.hourlyRate != null ? s.hourlyRate : DEFAULT_SETTINGS.hourlyRate }
-           : DEFAULT_SETTINGS;
+  let s = await db.collection('settings').findOne({ _id: 'app' });
+  if (!s || !s.clockFrom) {
+    /* Lần đầu chạy bản có tự chấm công: bắt buộc chấm từ NGÀY MAI, các ngày trước giữ cách tính cũ (đúng giờ ca). */
+    const d = new Date(bizDate(Date.now()) + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1);
+    const clockFrom = d.toISOString().slice(0, 10);
+    try { await db.collection('settings').updateOne({ _id: 'app', clockFrom: { $exists: false } }, { $set: { clockFrom } }, { upsert: !s }); }
+    catch (e) { if (!e || e.code !== 11000) throw e; }
+    s = await db.collection('settings').findOne({ _id: 'app' }) || { clockFrom };
+  }
+  return {
+    shopName: s.shopName || DEFAULT_SETTINGS.shopName,
+    shifts: Array.isArray(s.shifts) && s.shifts.length ? s.shifts : DEFAULT_SETTINGS.shifts,
+    hourlyRate: s.hourlyRate != null ? s.hourlyRate : DEFAULT_SETTINGS.hourlyRate,
+    clockFrom: s.clockFrom
+  };
 }
 
 async function staffList(db) {
@@ -99,6 +111,33 @@ async function assignedMap(db, week, byId) {
 }
 
 const byIdOf = list => { const m = {}; list.forEach(s => { m[s.id] = s; }); return m; };
+
+/* ======================= GIỜ VIỆT NAM & NGÀY LÀM VIỆC ======================= */
+
+const VN_OFFSET_MS = 7 * 3600e3;          /* Việt Nam UTC+7, không đổi giờ theo mùa */
+const DAY_START_MS = 6 * 3600e3;          /* 0:00–5:59 sáng vẫn thuộc ngày làm việc hôm trước (ca đêm) */
+const CLOCK_BACK_MIN = 12 * 60;           /* giờ nhận ca được lùi tối đa 12 giờ so với lúc bấm */
+const CLOCK_MAX_MIN = 16 * 60;            /* một ca dài tối đa 16 giờ */
+const CLOCK_OPEN_MS = 20 * 3600e3;        /* nhận ca quá 20 giờ chưa kết → coi như quên kết ca */
+const CLOCK_UNDO_MS = 30 * 60e3;          /* được hủy lượt nhận ca bấm nhầm trong 30 phút */
+
+const vnDate = ms => new Date(ms + VN_OFFSET_MS).toISOString().slice(0, 10);
+const vnMin = ms => { const d = new Date(ms + VN_OFFSET_MS); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
+/** Ngày làm việc (yyyy-MM-dd) của một thời điểm. */
+const bizDate = ms => vnDate(ms - DAY_START_MS);
+function mondayOf(date) {
+  const d = new Date(date + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
+  return d.toISOString().slice(0, 10);
+}
+const dayIdx = date => (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7;
+/** Giờ khai "HH:MM" → thời điểm thật gần nhất không sau lúc bấm (cho phép sớm hơn 5 phút vì đồng hồ điện thoại lệch). */
+function declaredMs(hhmm, nowMs) {
+  const base = nowMs - nowMs % 60e3;
+  let back = ((vnMin(nowMs) - TS.toMin(hhmm)) % 1440 + 1440) % 1440;     /* số phút trước lúc bấm */
+  if (back > 1440 - 6) back -= 1440;
+  return base - back * 60e3;
+}
 
 /* ======================= ĐĂNG NHẬP ======================= */
 
@@ -170,6 +209,39 @@ async function getStaffWeek(db, staffId, week) {
   };
 }
 
+async function activeStaff(db, staffId) {
+  const st = await db.collection('staff').findOne({ _id: String(staffId || '') });
+  if (!st || st.active === false) fail('Không tìm thấy nhân viên này.');
+  return st;
+}
+
+const openClockQuery = (staffId, nowMs) => ({ staffId, out: '', inTs: { $gt: nowMs - CLOCK_OPEN_MS } });
+
+function clockView(c, nowMs) {
+  return { id: c._id, date: c.date, day: c.day, shift: c.shift, in: c.in, out: c.out || '',
+    scheduled: !!c.scheduled, minutes: c.out ? TS.round15(TS.workedMinutes(c.in, c.out)) : 0,
+    canUndo: !c.out && nowMs - new Date(c.inAt).getTime() < CLOCK_UNDO_MS };
+}
+
+/** Trạng thái chấm công hôm nay của 1 nhân viên: ca trong lịch, đang làm ca nào, đã chấm những ca nào. */
+async function clockState(db, staffId) {
+  const st = await activeStaff(db, staffId);
+  const nowMs = Date.now(), date = bizDate(nowMs), week = mondayOf(date), day = dayIdx(date);
+  const [sets, status, asg, today, open] = await Promise.all([
+    settings(db), weekStatus(db, week),
+    db.collection('assignments').find({ week, day, staffId: st._id }).toArray(),
+    db.collection('clocks').find({ staffId: st._id, date }).toArray(),
+    db.collection('clocks').findOne(openClockQuery(st._id, nowMs))
+  ]);
+  const published = status === 'CONG_BO';
+  return {
+    nowMs, date, week, day, published, required: date >= sets.clockFrom,
+    mine: published ? Array.from(new Set(asg.map(a => a.shift))).sort((a, b) => a - b) : [],
+    today: today.sort((a, b) => a.inTs - b.inTs).map(c => clockView(c, nowMs)),
+    open: open ? clockView(open, nowMs) : null
+  };
+}
+
 const PUBLIC = {
   async getInit(db, ctx, staffId, week) {
     const [s, list] = await Promise.all([settings(db), staffList(db)]);
@@ -182,12 +254,69 @@ const PUBLIC = {
       googleClientId: googleClientId()
     };
     if (staffId && /^\d{4}-\d{2}-\d{2}$/.test(String(week || '')) && active.some(x => x.id === String(staffId))) {
-      out.week = await getStaffWeek(db, staffId, week);
+      [out.week, out.clock] = await Promise.all([getStaffWeek(db, staffId, week), clockState(db, staffId)]);
     }
     return out;
   },
 
   getStaffWeek(db, ctx, staffId, week) { return getStaffWeek(db, staffId, week); },
+
+  /* ---------- Nhân viên tự chấm công ---------- */
+  getClock(db, ctx, staffId) { return clockState(db, staffId); },
+
+  /** Nhận ca. Không có trong lịch đã công bố vẫn cho nhận (giao diện đã báo trước), đánh dấu scheduled=false. */
+  async clockIn(db, ctx, staffId, shift, time, note) {
+    const st = await activeStaff(db, staffId);
+    const sets = await settings(db);
+    shift = Number(shift);
+    if (!Number.isInteger(shift) || shift < 0 || shift >= sets.shifts.length) fail('Vui lòng chọn ca.');
+    const tin = TS.normTime(time);
+    if (!tin) fail('Giờ nhận ca không hợp lệ (dạng 19:00).');
+    const nowMs = Date.now(), inTs = declaredMs(tin, nowMs);
+    if (nowMs - inTs > CLOCK_BACK_MIN * 60e3) fail('Giờ nhận ca chỉ được sớm hơn hiện tại tối đa 12 giờ. Báo chủ quán nếu cần sửa.');
+    const open = await db.collection('clocks').findOne(openClockQuery(st._id, nowMs));
+    if (open) fail(`Bạn đang trong ${(sets.shifts[open.shift] || {}).name || 'một ca'} từ ${open.in} – hãy kết ca đó trước.`);
+    const date = bizDate(inTs), week = mondayOf(date), day = dayIdx(date);
+    const scheduled = (await weekStatus(db, week)) === 'CONG_BO' &&
+      !!(await db.collection('assignments').findOne({ week, day, shift, staffId: st._id }));
+    try {
+      await db.collection('clocks').insertOne({ _id: newId('CC'), staffId: st._id, name: st.name,
+        week, day, shift, date, in: tin, out: '', inTs, inAt: new Date(nowMs),
+        inGap: Math.round((nowMs - inTs) / 60e3), scheduled, noteIn: String(note || '').trim().slice(0, 200) });
+    } catch (e) {
+      if (e && e.code === 11000) fail(`Bạn đã chấm công ${sets.shifts[shift].name} ngày này rồi.`);
+      throw e;
+    }
+    return clockState(db, st._id);
+  },
+
+  /** Kết ca: giờ ra phải sau giờ vào, ca không quá 16 giờ, không sau lúc bấm. */
+  async clockOut(db, ctx, staffId, id, time, note) {
+    const st = await activeStaff(db, staffId);
+    const c = await db.collection('clocks').findOne({ _id: String(id || ''), staffId: st._id });
+    if (!c) fail('Không tìm thấy lượt nhận ca – hãy tải lại.');
+    if (c.out) fail('Ca này đã kết rồi.');
+    const tout = TS.normTime(time);
+    if (!tout) fail('Giờ kết ca không hợp lệ (dạng 23:30).');
+    const nowMs = Date.now(), outTs = declaredMs(tout, nowMs);
+    if (outTs <= c.inTs) fail(`Giờ kết ca phải sau giờ nhận ca (${c.in}).`);
+    if (outTs - c.inTs > CLOCK_MAX_MIN * 60e3) fail('Ca dài quá 16 giờ – kiểm tra lại giờ, hoặc báo chủ quán sửa giúp.');
+    const u = await db.collection('clocks').updateOne({ _id: c._id, out: '' }, { $set: { out: tout, outTs, outAt: new Date(nowMs),
+      outGap: Math.round((nowMs - outTs) / 60e3), noteOut: String(note || '').trim().slice(0, 200) } });
+    if (!u.modifiedCount) fail('Ca này đã kết rồi.');
+    return clockState(db, st._id);
+  },
+
+  /** Hủy lượt nhận ca bấm nhầm (chưa kết ca, trong 30 phút). */
+  async cancelClock(db, ctx, staffId, id) {
+    const st = await activeStaff(db, staffId);
+    const c = await db.collection('clocks').findOne({ _id: String(id || ''), staffId: st._id });
+    if (!c) fail('Không tìm thấy lượt nhận ca – hãy tải lại.');
+    if (c.out || Date.now() - new Date(c.inAt).getTime() >= CLOCK_UNDO_MS)
+      fail('Chỉ hủy được trong 30 phút sau khi nhận ca. Báo chủ quán nếu cần sửa.');
+    await db.collection('clocks').deleteOne({ _id: c._id, out: '' });
+    return clockState(db, st._id);
+  },
 
   async saveRegistration(db, ctx, staffId, week, slots, note) {
     checkWeek(week);
@@ -355,7 +484,8 @@ const ADMIN = {
     checkWeek(week);
     day = Number(day); shift = Number(shift); staffId = String(staffId || '');
     data = data || {};
-    const asg = await db.collection('assignments').findOne({ week, day, shift, staffId });
+    const asg = await db.collection('assignments').findOne({ week, day, shift, staffId }) ||
+                await db.collection('clocks').findOne({ week, day, shift, staffId });    /* ca tự nhận ngoài lịch */
     if (!asg) fail('Người này không còn được xếp ca đó – hãy tải lại.');
     const _id = [week, day, shift, staffId].join('|');
     if (data.reset) {
@@ -411,18 +541,27 @@ const ADMIN = {
     if (ctx.user.role === 'owner' && s.hourlyRate !== undefined && String(s.hourlyRate).trim() !== '') {
       hourlyRate = parseRate(s.hourlyRate);
     }
-    await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, hourlyRate, updatedAt: new Date() } }, { upsert: true });
-    return { shopName, shifts, hourlyRate };
+    let clockFrom = cur.clockFrom;
+    if (ctx.user.role === 'owner' && s.clockFrom !== undefined && s.clockFrom !== clockFrom) {   /* chỉ chủ quán: ảnh hưởng lương */
+      const v = String(s.clockFrom || '');
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(v + 'T00:00:00Z') : null;
+      if (!d || isNaN(d) || d.toISOString().slice(0, 10) !== v) fail('Ngày bắt đầu bắt buộc chấm công không hợp lệ.');
+      clockFrom = v;
+    }
+    await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, hourlyRate, clockFrom, updatedAt: new Date() } }, { upsert: true });
+    return { shopName, shifts, hourlyRate, clockFrom };
   }
 };
 
 async function timesheetOf(db, week) {
-  const [assignments, attendance, staff, st] = await Promise.all([
+  const [assignments, attendance, clocks, staff, st] = await Promise.all([
     db.collection('assignments').find({ week }).toArray().then(uniq),
     db.collection('attendance').find({ week }).toArray(),
+    db.collection('clocks').find({ week }).toArray().then(uniq),
     staffList(db), settings(db)
   ]);
-  const ts = TS.buildTimesheet({ assignments, attendance, staff, settings: st, days: DAYS });
+  const ts = TS.buildTimesheet({ assignments, attendance, clocks, staff, settings: st, days: DAYS,
+    week, today: bizDate(Date.now()), clockFrom: st.clockFrom });
   ts.week = week;
   ts.shifts = st.shifts;
   return ts;
@@ -511,7 +650,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {                                /* kiểm tra nhanh: mở /api trên trình duyệt */
     try { const db = await getDb(); await db.command({ ping: 1 });
       /* Đếm dữ liệu để kiểm tra sau mỗi lần cập nhật: số liệu phải giữ nguyên hoặc tăng. */
-      const names = ['staff', 'registrations', 'assignments', 'attendance', 'weeks', 'settings', 'managers'];
+      const names = ['staff', 'registrations', 'assignments', 'attendance', 'clocks', 'weeks', 'settings', 'managers'];
       const counts = {};
       await Promise.all(names.map(async n => { counts[n] = await db.collection(n).countDocuments({}); }));
       return res.status(200).end(JSON.stringify({ ok: true, db: 'connected',
