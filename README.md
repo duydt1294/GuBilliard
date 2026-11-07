@@ -80,11 +80,12 @@ Nhân viên đăng ký → chủ quán **🔒 Khóa đăng ký** → xếp ca (h
 
 Trang nhân viên → chọn tên → thẻ **⏱️ Chấm công** ở trên cùng:
 
-- **🟢 Nhận ca**: app gợi ý sẵn ca trong lịch hôm nay và điền **giờ hiện tại** (sửa được nếu quên bấm). Chọn ca **không có trong lịch đã công bố** (hoặc tuần chưa công bố lịch) → app cảnh báo, nút đổi thành *Vẫn nhận ca*; ca đó vẫn được tính công nhưng chủ quán thấy nhãn **ngoài lịch**.
-- **🔴 Kết ca**: điền sẵn giờ hiện tại, hiện số giờ làm; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ). 0:00–5:59 sáng vẫn tính là ngày làm việc hôm trước.
-- Đã nhận ca thì chỉ còn nút **Kết ca**; kết ca xong không còn nút Nhận ca. **Làm 2 ca liền nhau** (vd Ca 1 + Ca 2) chỉ cần nhận ca 1 lần lúc vào và kết ca lúc về – ca còn lại trong lịch được ghi *Gộp ca*, không cộng giờ 2 lần. Làm 2 ca cách quãng (vd Ca 1 và Ca 3) thì bấm dòng nhỏ *Làm thêm một ca khác*.
-- Bấm nhầm: **Hủy lượt nhận ca** trong 30 phút đầu.
-- Giới hạn: giờ nhận ca lùi tối đa 12 giờ, không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca chỉ chấm 1 lần/ngày. Nhận ca quá 20 giờ chưa kết → coi như quên kết ca, nhân viên vẫn nhận được ca mới.
+- **🟢 Nhận ca / 🔴 Kết ca**: ô giờ **mặc định là giờ hiện tại**, nhân viên sửa lại đúng thực tế trước khi xác nhận (vd vào lúc 9:00 nhưng 9:20 mới nhớ bấm). App gợi ý sẵn ca trong lịch hôm nay. Chọn ca **không có trong lịch đã công bố** → app cảnh báo, nút đổi thành *Vẫn nhận ca*; vẫn được tính công, chủ quán thấy nhãn **ngoài lịch**.
+- Đã nhận ca thì chỉ còn nút **Kết ca**; kết ca xong không còn nút Nhận ca. **Làm 2 ca liền nhau** chỉ cần nhận ca 1 lần lúc vào, kết ca lúc về – ca còn lại trong lịch ghi *Gộp ca*, không cộng giờ 2 lần.
+- **Quên kết ca**: lần mở app sau (kể cả hôm sau) thẻ báo *"Bạn chưa kết Ca …"* → nhập giờ đã về thực tế (vd 23:30 hôm qua). Phải kết ca cũ rồi mới nhận ca mới.
+- **Quên chấm công cả ca** (hoặc làm thêm ca cách quãng): bấm **Nhập bù** → chọn *Hôm qua / Hôm nay*, chọn ca, nhập giờ vào và tick *Đã làm xong ca này* để nhập luôn giờ ra.
+- Kiểm tra: giờ vào/ra không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca 1 lần/ngày; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ), 0:00–5:59 sáng thuộc ngày làm việc hôm trước. Ca cũ hơn hôm qua: báo chủ quán sửa.
+- Bấm nhầm: nút **Hủy** trong 30 phút sau khi bấm.
 - App lưu cả **giờ bấm thật**. Nếu giờ khai lệch quá 15 phút, tab Chấm công ghi rõ, vd *"khai vào 9:00, bấm lúc 9:40"*.
 
 **Cách tính công** (tab 💰 Chấm công), thứ tự ưu tiên:

@@ -225,6 +225,11 @@ input[type=time]{min-height:46px}
 .clkl li b{color:var(--g)}
 .ckwarn{background:var(--ol);color:#8a4b00;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:14px;font-weight:600}
 .bd-in{background:var(--bl);color:var(--b)}
+.ckchk{display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:14px;margin:12px 0 0;padding:10px 12px;background:#f6f8f7;border-radius:12px;cursor:pointer}
+.ckchk input{width:20px;height:20px;min-height:0;margin:1px 0 0;flex:none;accent-color:var(--g2)}
+.clkon.late{background:var(--ol)}
+.clkon.late b{color:#8a4b00}
+.clkl .undo{background:none;border:0;color:var(--r);text-decoration:underline;font-weight:400;font-size:13px;min-height:32px;padding:0 0 0 6px}
 .gap{color:var(--o);font-weight:600}
 [hidden]{display:none!important}
 </style>
@@ -269,7 +274,7 @@ input[type=time]{min-height:46px}
       </div>
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 2.9</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.0</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -469,10 +474,16 @@ input[type=time]{min-height:46px}
   <div class="sheet">
     <h3 id="ckTitle"></h3>
     <p class="hint" id="ckSub" style="margin:0 0 12px"></p>
-    <div id="ckShiftWrap"><label for="ckShift">Ca làm</label><select id="ckShift"></select></div>
+    <div id="ckInOnly">
+      <div class="seg" id="ckDay"><button data-v="prev"></button><button data-v="today"></button></div>
+      <label for="ckShift" style="margin-top:12px">Ca làm</label><select id="ckShift"></select>
+    </div>
     <div id="ckWarn" class="ckwarn" hidden></div>
-    <label for="ckTime" style="margin-top:12px" id="ckTimeLbl">Giờ</label>
-    <input id="ckTime" type="time">
+    <div class="row2" style="margin-top:12px">
+      <div><label for="ckTime" id="ckTimeLbl">Giờ</label><input id="ckTime" type="time"></div>
+      <div id="ckOutWrap" hidden><label for="ckOut">Giờ kết ca</label><input id="ckOut" type="time"></div>
+    </div>
+    <label class="ckchk" id="ckDoneWrap"><input type="checkbox" id="ckDone"> Đã làm xong ca này (quên chấm công) – nhập luôn giờ kết ca</label>
     <p class="hint" id="ckCalc" style="margin:8px 0 0"></p>
     <label for="ckNote" style="margin-top:12px">Ghi chú</label>
     <input id="ckNote" maxlength="200" placeholder="Không bắt buộc" autocomplete="off" enterkeyhint="done">
@@ -763,16 +774,26 @@ function shRange(i){
 }
 const r15 = m => Math.round(m / 15) * 15;      /* làm tròn 0,25 giờ như máy chủ */
 const bizMin = t => { const m = toM(t); return m < 360 ? m + 1440 : m; };
-/** Số phút từ giờ khai tới bây giờ (âm nhẹ = sau hiện tại vài phút). */
-function backMin(t){ let d = ((toM(vnNowHM()) - toM(t)) % 1440 + 1440) % 1440; return d > 1434 ? d - 1440 : d; }
 
-/** Ca gợi ý khi nhận ca: ưu tiên ca trong lịch của mình, gần giờ hiện tại nhất, chưa chấm. */
-function pickShift(c){
-  const done = new Set(c.today.map(x => x.shift));
+const daysBetween = (a, b) => Math.round((fromIso(b) - fromIso(a)) / 864e5);
+/** Vị trí (phút) của giờ t trong ngày làm việc `date`, tính từ đầu NGÀY HÔM QUA – để so sánh với hiện tại. */
+const absMin = (date, t) => (1 - daysBetween(date, S.clock.date)) * 1440 + bizMin(t);
+const nowAbs = () => 1440 + bizMin(vnNowHM());
+/** Lịch & chấm công của "hôm nay" hoặc "hôm qua" (nhập bù). */
+function dayOf(v){
+  const c = S.clock;
+  return v === 'prev' ? { date: c.prev.date, day: c.prev.day, published: c.prev.published, mine: c.prev.mine, clocks: c.prev.clocks }
+                      : { date: c.date, day: c.day, published: c.published, mine: c.mine, clocks: c.today };
+}
+const dayName = d => `${S.init.days[d.day]} ${dm(fromIso(d.date))}`;
+
+/** Ca gợi ý: ưu tiên ca trong lịch của mình chưa chấm; hôm nay thì chọn ca gần giờ hiện tại nhất. */
+function pickShift(d, isToday){
+  const done = new Set(d.clocks.map(x => x.shift));
   const all = S.init.shifts.map((_, i) => i).filter(i => !done.has(i));
-  const mine = c.mine.filter(i => !done.has(i));
+  const mine = d.mine.filter(i => !done.has(i));
   const now = bizMin(vnNowHM());
-  const score = i => { const r = shRange(i); if (!r) return 9999; return now < r.a ? r.a - now : (now < r.b ? 0 : (now - r.b) * 2); };
+  const score = i => { if (!isToday) return i; const r = shRange(i); if (!r) return 9999; return now < r.a ? r.a - now : (now < r.b ? 0 : (now - r.b) * 2); };
   return (mine.length ? mine : all).sort((x, y) => score(x) - score(y))[0];
 }
 
@@ -786,81 +807,111 @@ function renderClock(){
     : !c.mine.length ? 'Hôm nay bạn không có ca trong lịch.'
     : 'Lịch hôm nay: ' + c.mine.map(i => `<b>${shName(i)}</b> ${esc(I.shifts[i].time)}`).join(', ');
   let h = `<div class="clkh"><h3>⏱️ Chấm công</h3><span class="mu">${I.days[c.day]} ${dm(fromIso(c.date))}</span></div>
-    <p class="hint" style="margin:0 0 10px">${sched}${c.required && c.mine.length && !c.today.length ? '<br><b style="color:var(--o)">Nhớ bấm Nhận ca khi vào làm – không chấm công sẽ không được tính giờ.</b>' : ''}</p>`;
-  if (c.open) {
-    const o = c.open;
+    <p class="hint" style="margin:0 0 10px">${sched}${c.required && c.mine.length && !c.today.length && !c.open ? '<br><b style="color:var(--o)">Nhớ bấm Nhận ca khi vào làm – không chấm công sẽ không được tính giờ.</b>' : ''}</p>`;
+  const o = c.open;
+  if (o && (o.late || o.date !== c.date)) {
+    /* Quên kết ca (hôm qua / quá 16 giờ): nhắc nhập giờ kết ca thực tế */
+    h += `<div class="clkon late"><span>⚠️</span><div><b>Bạn chưa kết ${shName(o.shift)} · ${esc(dayName(o))}</b>
+      <small>Nhận ca lúc ${showT(o.in)}. Hãy nhập đúng giờ đã về.</small></div></div>
+      <button class="full clkbtn out" data-ck="out">🔴 Nhập giờ kết ca</button>`;
+  } else if (o) {
     h += `<div class="clkon"><span class="dot"></span><div><b>Đang làm ${shName(o.shift)}</b>
-      <small>Nhận ca lúc ${showT(o.in)}${o.date !== c.date ? ' (hôm qua)' : ''}${o.scheduled ? '' : ' · ngoài lịch'}</small></div></div>
+      <small>Nhận ca lúc ${showT(o.in)}${o.scheduled ? '' : ' · ngoài lịch'}</small></div></div>
       <button class="full clkbtn out" data-ck="out">🔴 Kết ca</button>` +
-      (o.canUndo ? '<button class="link full" data-ck="undo">Hủy lượt nhận ca (bấm nhầm)</button>' : '');
+      (o.canUndo ? `<button class="link full" data-ck="undo" data-id="${esc(o.id)}">Hủy lượt nhận ca (bấm nhầm)</button>` : '');
   } else if (!c.today.length) {
-    h += '<button class="full clkbtn" data-ck="in">🟢 Nhận ca</button>';
+    h += '<button class="full clkbtn" data-ck="in">🟢 Nhận ca</button>' +
+      '<button class="link full" data-ck="fix">Quên chấm công? Nhập bù giờ thực tế</button>';
   } else {
     /* Đã nhận ca hôm nay → không còn nút Nhận ca; chỉ hiện kết quả */
     const tot = c.today.reduce((m, x) => m + x.minutes, 0);
-    h += `<div class="clkon done"><span>✅</span><div><b>Đã kết ca hôm nay · ${hrs(tot)}</b><small>Làm 2 ca liền nhau thì chỉ cần nhận ca 1 lần, kết ca khi về.</small></div></div>`;
-    if (I.shifts.some((_, i) => !c.today.some(x => x.shift === i)))
-      h += '<button class="link full" data-ck="in">Làm thêm một ca khác (cách quãng) hôm nay?</button>';
+    h += `<div class="clkon done"><span>✅</span><div><b>Đã kết ca hôm nay · ${hrs(tot)}</b><small>Làm 2 ca liền nhau thì chỉ cần nhận ca 1 lần, kết ca khi về.</small></div></div>
+      <button class="link full" data-ck="fix">Nhập bù / làm thêm ca khác</button>`;
   }
-  const done = c.today.filter(x => x.out);
-  if (done.length) h += '<ul class="clkl">' + done.map(x => `<li><span>✓ ${shName(x.shift)}${x.scheduled ? '' : ' <span class="bd bd-warn">ngoài lịch</span>'}</span>
-    <span>${showT(x.in)} – ${showT(x.out)} · <b>${hrs(x.minutes)}</b></span></li>`).join('') + '</ul>';
+  /* Ca đã xong hôm nay + ca hôm qua vừa nhập bù (còn hủy được) */
+  const rows = c.today.filter(x => x.out).concat(c.prev.clocks.filter(x => x.out && x.canUndo));
+  if (rows.length) h += '<ul class="clkl">' + rows.map(x => `<li><span>✓ ${shName(x.shift)}${x.date !== c.date ? ' <span class="mu">' + esc(dayName(x)) + '</span>' : ''}${x.scheduled ? '' : ' <span class="bd bd-warn">ngoài lịch</span>'}</span>
+    <span>${showT(x.in)} – ${showT(x.out)} · <b>${hrs(x.minutes)}</b>${x.canUndo ? `<button class="undo" data-ck="undo" data-id="${esc(x.id)}">Hủy</button>` : ''}</span></li>`).join('') + '</ul>';
   el.innerHTML = h;
 }
 
-let ckMode = 'in';
+let ckMode = 'in', ckDayV = 'today';
 const staffName = () => (S.init.staff.find(x => x.id === S.staffId) || {}).name || '';
+function ckSetDay(v){
+  ckDayV = v;
+  const d = dayOf(v), done = new Set(d.clocks.map(x => x.shift));
+  $$('#ckDay button').forEach(b => b.classList.toggle('act', b.dataset.v === v));
+  $('#ckShift').innerHTML = S.init.shifts.map((sh, i) => `<option value="${i}" ${done.has(i) ? 'disabled' : ''}>${esc(sh.name)} · ${esc(sh.time)}` +
+    (done.has(i) ? ' (đã chấm)' : d.mine.includes(i) ? ' ⭐ lịch của bạn' : '') + '</option>').join('');
+  const pick = pickShift(d, v === 'today');
+  if (pick === undefined) $('#ckShift').selectedIndex = -1; else $('#ckShift').value = pick;
+  ckUpd();
+}
+/** mode: 'in' = nhận ca bây giờ, 'fix' = nhập bù (quên chấm công), 'out' = kết ca. Giờ mặc định luôn là giờ hiện tại. */
 function openClock(mode){
   const c = S.clock, I = S.init;
-  ckMode = mode;
-  $('#ckSub').textContent = `${staffName()} · ${I.days[c.day]} ${dm(fromIso(c.date))}`;
+  ckMode = mode === 'out' ? 'out' : 'in';
   $('#ckNote').value = '';
   $('#ckTime').value = vnNowHM();
-  if (mode === 'in') {
-    const done = new Set(c.today.map(x => x.shift));
-    $('#ckTitle').textContent = '🟢 Nhận ca';
+  $('#ckOut').value = vnNowHM();
+  if (ckMode === 'in') {
+    $('#ckTitle').textContent = mode === 'fix' ? '📝 Nhập bù chấm công' : '🟢 Nhận ca';
+    $('#ckSub').textContent = staffName() + ' · giờ mặc định là hiện tại, sửa lại đúng thực tế nếu cần';
     $('#ckTimeLbl').textContent = 'Giờ nhận ca';
-    $('#ckShift').innerHTML = I.shifts.map((sh, i) => `<option value="${i}" ${done.has(i) ? 'disabled' : ''}>${esc(sh.name)} · ${esc(sh.time)}` +
-      (done.has(i) ? ' (đã chấm)' : c.mine.includes(i) ? ' ⭐ lịch của bạn' : '') + '</option>').join('');
-    $('#ckShift').value = pickShift(c);
-    $('#ckNote').placeholder = 'Không bắt buộc, vd: làm thay bạn Nam';
+    $('#ckDay [data-v="prev"]').textContent = 'Hôm qua ' + dm(fromIso(c.prev.date));
+    $('#ckDay [data-v="today"]').textContent = 'Hôm nay ' + dm(fromIso(c.date));
+    $('#ckDone').checked = mode === 'fix';
+    $('#ckNote').placeholder = mode === 'fix' ? 'Vd: quên bấm nhận ca' : 'Không bắt buộc, vd: làm thay bạn Nam';
+    /* Nhập bù: chọn sẵn hôm qua nếu hôm qua còn ca trong lịch chưa chấm mà hôm nay không còn */
+    const left = d => d.mine.some(i => !d.clocks.some(x => x.shift === i));
+    ckSetDay(mode === 'fix' && !left(dayOf('today')) && left(dayOf('prev')) ? 'prev' : 'today');
   } else {
-    $('#ckTitle').textContent = '🔴 Kết ca · ' + ((I.shifts[c.open.shift] || {}).name || '');
+    const o = c.open;
+    $('#ckTitle').textContent = '🔴 Kết ca · ' + ((I.shifts[o.shift] || {}).name || '');
+    $('#ckSub').textContent = `${staffName()} · nhận ca lúc ${showT(o.in)} ${dayName(o)}`;
     $('#ckTimeLbl').textContent = 'Giờ kết ca';
     $('#ckNote').placeholder = 'Không bắt buộc, vd: về sớm 30 phút';
+    ckUpd();
   }
-  $('#ckShiftWrap').hidden = mode !== 'in';
-  ckUpd();
+  $('#ckInOnly').hidden = $('#ckDoneWrap').hidden = ckMode !== 'in';
   $('#ckModal').hidden = false;
 }
-/** Cập nhật cảnh báo / số giờ trong bảng nhận–kết ca; trả về lỗi (nếu có) để chặn nút xác nhận. */
+/** Kiểm tra giờ, cảnh báo ngoài lịch, tính số giờ. Trả về lỗi (nếu có) để chặn nút xác nhận. */
 function ckUpd(){
   const c = S.clock, t = $('#ckTime').value;
   let warn = '', calc = '', err = '';
+  const span = (a, b) => { const m = workMin(a, b); return `${showT(a)} → ${showT(b)} = <b>${hrs(r15(m))}</b>${r15(m) !== m ? ' (làm tròn 0,25 giờ)' : ''}${toM(b) <= toM(a) ? ' · qua nửa đêm' : ''}`; };
+  const outErr = (inAbs, a, b) => {
+    if (!b) return 'Vui lòng nhập giờ kết ca.';
+    if (a === b) return 'Giờ kết ca phải khác giờ nhận ca.';
+    const m = workMin(a, b);
+    if (m > 16 * 60) return `Ca dài quá 16 giờ (${showT(a)} → ${showT(b)}) – kiểm tra lại giờ kết ca.`;
+    if (inAbs + m > nowAbs() + 5) return 'Giờ kết ca chưa tới – không được sau giờ hiện tại.';
+    return '';
+  };
   if (ckMode === 'in') {
-    const i = +$('#ckShift').value, sh = S.init.shifts[i] || {}, inSched = c.mine.includes(i);
-    if (!inSched) warn = !c.published
-      ? '⚠️ Lịch tuần này chưa công bố nên chưa đối chiếu được. Bạn vẫn nhận ca được – chủ quán sẽ thấy ca này là "ngoài lịch".'
-      : `⚠️ Bạn không có lịch ${sh.name} hôm nay. Bạn vẫn nhận ca được – chủ quán sẽ thấy ca này là "ngoài lịch".`;
-    $('#ckOk').textContent = inSched ? '✓ Nhận ca' : '⚠️ Vẫn nhận ca';
-    calc = `Giờ ca: ${esc(sh.time || '')}`;
-    if (t) {
-      const b = backMin(t);
-      if (b > 720) err = 'Giờ nhận ca không được sau giờ hiện tại.';
-      else if (Math.abs(b) > 15) calc += ` · <span class="gap">khác giờ hiện tại ${b} phút – chủ quán sẽ thấy giờ bạn bấm thực tế</span>`;
+    const d = dayOf(ckDayV), i = $('#ckShift').value === '' ? -1 : +$('#ckShift').value;
+    const sh = S.init.shifts[i] || {}, inSched = d.mine.includes(i), done = $('#ckDone').checked;
+    const when = ckDayV === 'prev' ? 'hôm qua' : 'hôm nay';
+    $('#ckOutWrap').hidden = !done;
+    if (i < 0) err = 'Bạn đã chấm công đủ các ca ngày này.';
+    else if (!inSched) warn = !d.published
+      ? `⚠️ Lịch tuần ${ckDayV === 'prev' ? 'của hôm qua' : 'này'} chưa công bố nên chưa đối chiếu được. Bạn vẫn chấm công được – chủ quán sẽ thấy ca này là "ngoài lịch".`
+      : `⚠️ Bạn không có lịch ${sh.name} ${when}. Bạn vẫn chấm công được – chủ quán sẽ thấy ca này là "ngoài lịch".`;
+    $('#ckOk').textContent = inSched ? (done ? '✓ Lưu giờ làm' : '✓ Nhận ca') : (done ? '⚠️ Vẫn lưu giờ làm' : '⚠️ Vẫn nhận ca');
+    if (!err && t) {
+      const inAbs = absMin(d.date, t);
+      if (inAbs > nowAbs() + 5) err = 'Giờ nhận ca không được sau giờ hiện tại.';
+      else if (done) { err = outErr(inAbs, t, $('#ckOut').value); calc = err ? '' : span(t, $('#ckOut').value); }
+      calc = (calc ? calc + ' · ' : '') + `giờ ca ${esc(sh.time || '')}`;
     }
   } else {
     const o = c.open;
     $('#ckOk').textContent = '✓ Kết ca';
-    if (t) {
-      const m = workMin(o.in, t), b = backMin(t);
-      if (b > 720 && m > 0) err = 'Giờ kết ca không được sau giờ hiện tại.';
-      else if (m > 16 * 60) err = 'Ca dài quá 16 giờ – kiểm tra lại giờ kết ca.';
-      else calc = `${showT(o.in)} → ${showT(t)} = <b>${hrs(r15(m))}</b>${r15(m) !== m ? ' (làm tròn 0,25 giờ)' : ''}${toM(t) <= toM(o.in) ? ' · qua nửa đêm' : ''}` +
-        (Math.abs(b) > 15 ? ` · <span class="gap">khác giờ hiện tại ${b} phút</span>` : '');
-    }
+    if (o.late || o.date !== c.date) warn = `⚠️ Bạn quên kết ca này (nhận lúc ${showT(o.in)} ${dayName(o)}). Hãy nhập đúng giờ đã về.`;
+    if (t) { err = outErr(absMin(o.date, o.in), o.in, t); if (!err) calc = span(o.in, t); }
   }
-  if (!t) err = 'Vui lòng nhập giờ.';
+  if (!t && !err) err = 'Vui lòng nhập giờ.';
   $('#ckWarn').hidden = !warn; $('#ckWarn').textContent = warn;
   $('#ckCalc').innerHTML = err ? `<span style="color:var(--r);font-weight:600">${esc(err)}</span>` : calc;
   $('#ckOk').disabled = !!err;
@@ -869,35 +920,43 @@ function ckUpd(){
 const closeCk = () => { $('#ckModal').hidden = true; document.activeElement && document.activeElement.blur(); };
 $('#ckShift').addEventListener('change', ckUpd);
 $('#ckTime').addEventListener('input', ckUpd);
+$('#ckOut').addEventListener('input', ckUpd);
+$('#ckDone').addEventListener('change', ckUpd);
+$('#ckDay').addEventListener('click', e => { const b = e.target.closest('button'); if (b) ckSetDay(b.dataset.v); });
 $('#ckCancel').onclick = closeCk;
 $('#ckModal').onclick = e => { if (e.target.id === 'ckModal') closeCk(); };
 $('#ckOk').onclick = async () => {
   if (ckUpd()) return;
   const t = $('#ckTime').value, note = $('#ckNote').value, mode = ckMode;
+  const done = mode === 'in' && $('#ckDone').checked, out = $('#ckOut').value;
   const sh = mode === 'in' ? +$('#ckShift').value : S.clock.open.shift;
-  const r = mode === 'in' ? await call('clockIn', S.staffId, sh, t, note)
+  const r = mode === 'in' ? await call('clockIn', S.staffId, sh, t, note, { date: dayOf(ckDayV).date, out: done ? out : '' })
                           : await call('clockOut', S.staffId, S.clock.open.id, t, note);
   if (!r) return;                                  /* lỗi: giữ bảng mở để sửa, thông báo hiện phía trên */
   setClock(r); closeCk();
   const name = (S.init.shifts[sh] || {}).name || '';
-  if (mode === 'in') toast(`Đã nhận ${name} lúc ${showT(t)} ✓`);
-  else { const x = r.today.find(y => y.shift === sh && y.out); toast(`Đã kết ${name} ✓` + (x ? ' · ' + hrs(x.minutes) : '')); }
+  if (mode === 'out') { const x = r.today.concat(r.prev.clocks).find(y => y.shift === sh && y.out && y.out === t); toast(`Đã kết ${name} ✓` + (x ? ' · ' + hrs(x.minutes) : '')); }
+  else if (done) toast(`Đã lưu ${name} ${showT(t)} – ${showT(out)} ✓`);
+  else toast(`Đã nhận ${name} lúc ${showT(t)} ✓`);
 };
 $('#clockCard').addEventListener('click', async e => {
   const b = e.target.closest('[data-ck]'); if (!b) return;
+  const act = b.dataset.ck, id = b.dataset.id;
   const fresh = await call('getClock', S.staffId);          /* lấy trạng thái mới nhất trước khi mở */
   if (!fresh) return;
   setClock(fresh);
-  if (b.dataset.ck === 'undo') {
-    if (!fresh.open || !fresh.open.canUndo) { toast('Đã quá 30 phút, không hủy được nữa. Báo chủ quán nếu cần sửa.', true); return; }
-    if (!(await ask(`Hủy lượt nhận ${(S.init.shifts[fresh.open.shift] || {}).name} lúc ${showT(fresh.open.in)}?`, 'Hủy lượt này', 'Không'))) return;
-    const r = await call('cancelClock', S.staffId, fresh.open.id);
-    if (r) { setClock(r); toast('Đã hủy lượt nhận ca'); }
+  if (act === 'undo') {
+    const x = fresh.today.concat(fresh.prev.clocks).find(y => y.id === id);
+    if (!x || !x.canUndo) { toast('Đã quá 30 phút, không hủy được nữa. Báo chủ quán nếu cần sửa.', true); return; }
+    const sn = (S.init.shifts[x.shift] || {}).name;
+    if (!(await ask(x.out ? `Hủy giờ làm ${sn} ${showT(x.in)} – ${showT(x.out)}?` : `Hủy lượt nhận ${sn} lúc ${showT(x.in)}?`, 'Hủy lượt này', 'Không'))) return;
+    const r = await call('cancelClock', S.staffId, x.id);
+    if (r) { setClock(r); toast('Đã hủy'); }
     return;
   }
-  if (b.dataset.ck === 'out' && !fresh.open) { toast('Ca này đã được kết.'); return; }
-  if (b.dataset.ck === 'in' && fresh.open) { toast('Bạn đang trong một ca – hãy kết ca trước.', true); return; }
-  openClock(b.dataset.ck);
+  if (act === 'out' && !fresh.open) { toast('Ca này đã được kết.'); return; }
+  if (act !== 'out' && fresh.open) { toast('Bạn chưa kết ca trước – hãy kết ca đó trước.', true); return; }
+  openClock(act);
 });
 /* Mở lại app (vd sáng hôm sau) → cập nhật chấm công */
 document.addEventListener('visibilitychange', async () => {
@@ -1244,7 +1303,8 @@ $('#zaloModal').onclick = e => { if (e.target.id === 'zaloModal') $('#zaloModal'
 
 /* ---------- Tab chấm công ---------- */
 const money = n => Math.round(n || 0).toLocaleString('vi-VN') + 'đ';
-const hrs = m => (Math.round((m || 0) / 6) / 10).toLocaleString('vi-VN') + ' giờ';
+const hN = m => (Math.round((m || 0) / 0.6) / 100).toLocaleString('vi-VN');    /* phút → giờ, 2 số lẻ (4,75) */
+const hrs = m => hN(m) + ' giờ';
 const showT = t => t ? String(+t.split(':')[0]) + ':' + t.split(':')[1] : '';
 const workMin = (a, b) => { if (!a || !b) return 0; const t = x => +x.split(':')[0] * 60 + +x.split(':')[1]; let d = t(b) - t(a); if (d <= 0) d += 1440; return d; };
 
@@ -1266,7 +1326,7 @@ function renderTsWeekNav(){
 }
 function renderTs(){
   const t = S.ts, I = S.init;
-  $('#ccHours').textContent = (Math.round(t.totals.minutes / 6) / 10).toLocaleString('vi-VN');
+  $('#ccHours').textContent = hN(t.totals.minutes);
   $('#ccPay').textContent = money(t.totals.pay);
   const info = [`${t.people.length} nhân viên · ${t.records.length} lượt ca`];
   if (t.totals.clocked) info.push(`${t.totals.clocked} ca tự chấm công`);
@@ -1312,15 +1372,15 @@ function renderTs(){
     if (cg) flags.push(`<span class="gap">${cg}</span>`);
     h += `<button class="tsr ${r.absent || r.src === 'noclock' ? 'off' : ''}" data-k="${r.day}|${r.shift}|${esc(r.staffId)}">
       <span class="tx"><b>${esc(r.name)}</b><small>${time}${flags.length ? ' · ' + flags.join(' · ') : ''}${r.note ? ' · ' + esc(r.note) : ''}</small></span>
-      ${badge}<span class="hr">${r.absent ? '0' : (Math.round(r.minutes / 6) / 10).toLocaleString('vi-VN')}h</span></button>`;
+      ${badge}<span class="hr">${r.absent ? '0' : hN(r.minutes)}h</span></button>`;
   });
   $('#ccDay').innerHTML = h;
 
   /* Bảng lương */
   $('#ccPeople').innerHTML = t.people.length ? `<table class="pay"><tr><th>Nhân viên</th><th class="r">Giờ</th><th class="r">Lương/giờ</th><th class="r">Tiền</th></tr>` +
     t.people.map(p => `<tr><td>${esc(p.name)}${p.absents ? ` <span class="bd bd-off">${p.absents} nghỉ</span>` : ''}${p.noclock ? ` <span class="bd bd-warn">${p.noclock} không chấm</span>` : ''}</td>
-      <td class="r">${(Math.round(p.minutes / 6) / 10).toLocaleString('vi-VN')}</td><td class="r">${(p.rate / 1000).toLocaleString('vi-VN')}k</td><td class="r"><b>${money(p.pay)}</b></td></tr>`).join('') +
-    `<tr class="tot"><td>Tổng</td><td class="r">${(Math.round(t.totals.minutes / 6) / 10).toLocaleString('vi-VN')}</td><td></td><td class="r">${money(t.totals.pay)}</td></tr></table>`
+      <td class="r">${hN(p.minutes)}</td><td class="r">${(p.rate / 1000).toLocaleString('vi-VN')}k</td><td class="r"><b>${money(p.pay)}</b></td></tr>`).join('') +
+    `<tr class="tot"><td>Tổng</td><td class="r">${hN(t.totals.minutes)}</td><td></td><td class="r">${money(t.totals.pay)}</td></tr></table>`
     : '<p class="hint" style="margin:0">Chưa có dữ liệu.</p>';
 }
 $('#ccDay').addEventListener('click', e => {
@@ -1332,13 +1392,18 @@ $('#ccDay').addEventListener('click', e => {
   if (r) openAt(r);
 });
 
-/** Giờ nhân viên khai lệch so với lúc bấm thật > 15 phút → báo cho chủ quán. */
+/** Giờ nhân viên khai lệch so với lúc bấm thật > 15 phút → báo cho chủ quán (kèm ngày nếu bấm vào ngày khác). */
 function clockGap(r){
   const c = r.clock; if (!c) return '';
-  const at = (t, g) => { const m = ((toM(t) + g) % 1440 + 1440) % 1440; return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+  const at = (iso, t) => {
+    const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false }).formatToParts(new Date(iso));
+    const g = k => (p.find(x => x.type === k) || {}).value;
+    const day = `${g('day')}/${g('month')}`, shiftDay = dayDate(S.adminWeek, r.day);
+    return `${+g('hour') % 24}:${g('minute')}` + (day !== shiftDay ? ' ' + day : '');
+  };
   const out = [];
-  if (Math.abs(c.inGap) > 15) out.push(`khai vào ${showT(c.in)}, bấm lúc ${at(c.in, c.inGap)}`);
-  if (c.out && Math.abs(c.outGap) > 15) out.push(`khai ra ${showT(c.out)}, bấm lúc ${at(c.out, c.outGap)}`);
+  if (c.inAt && Math.abs(c.inGap) > 15) out.push(`khai vào ${showT(c.in)}, bấm lúc ${at(c.inAt)}`);
+  if (c.out && c.outAt && Math.abs(c.outGap) > 15) out.push(`khai ra ${showT(c.out)}, bấm lúc ${at(c.outAt)}`);
   return out.join(' · ');
 }
 
