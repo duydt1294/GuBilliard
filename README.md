@@ -90,7 +90,9 @@ Thẻ **⏱️ Chấm công** ở tab Ca làm:
 - **Quên kết ca**: lần mở app sau (kể cả hôm sau) thẻ báo *"Bạn chưa kết Ca …"* → nhập giờ đã về thực tế (vd 23:30 hôm qua). Phải kết ca cũ rồi mới nhận ca mới.
 - **Quên chấm công cả ca** (hoặc làm thêm ca cách quãng): bấm **Nhập bù** → chọn **ngày bất kỳ trong tháng này** (danh sách ghi rõ ngày nào còn ca trong lịch *⚠️ chưa chấm*), chọn ca, nhập giờ vào và tick *Đã làm xong ca này* để nhập luôn giờ ra.
 - Kiểm tra: giờ vào/ra không được sau giờ hiện tại; một ca tối đa 16 giờ; mỗi ca 1 lần/ngày; ca qua nửa đêm tính đúng (19:00 → 0:30 = 5,5 giờ), 0:00–5:59 sáng thuộc ngày làm việc hôm trước. Không chấm trước cho ngày chưa tới; ngày của tháng trước báo chủ quán sửa (riêng ngày cuối tháng trước vẫn nhập bù được vào mùng 1).
-- Bấm nhầm: nút **Hủy** trong 30 phút sau khi bấm.
+- **Xóa ca đã chấm**: ca **chưa được duyệt** nhân viên tự **Xóa** được bất cứ lúc nào (rồi nhập bù lại nếu sai). Chủ quán/quản lý **duyệt** thì ca bị khóa (🔒 Đã duyệt), muốn sửa phải báo chủ quán.
+
+**Duyệt chấm công** (tab 💰 Chấm công): nút **✓ Duyệt ngày này**, **✓ Duyệt tất cả ca tự chấm trong tuần**, hoặc chạm 1 dòng → *Duyệt ca này* / *Bỏ duyệt*. Chỉ duyệt được ca đã kết. Chủ quán **sửa giờ** một ca tự chấm cũng tính là đã duyệt. Nên duyệt hết trước khi xuất Excel trả lương để số liệu không bị nhân viên thay đổi.
 - App lưu cả **giờ bấm thật**. Nếu giờ khai lệch quá 15 phút, tab Chấm công ghi rõ, vd *"khai vào 9:00, bấm lúc 9:40"*.
 
 **Cách tính công** (tab 💰 Chấm công), thứ tự ưu tiên:

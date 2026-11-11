@@ -118,7 +118,7 @@ const VN_OFFSET_MS = 7 * 3600e3;          /* Việt Nam UTC+7, không đổi gi�
 const DAY_START_MS = 6 * 3600e3;          /* 0:00–5:59 sáng vẫn thuộc ngày làm việc hôm trước (ca đêm) */
 const CLOCK_MAX_MIN = 16 * 60;            /* một ca dài tối đa 16 giờ */
 const CLOCK_OPEN_MS = 3 * 86400e3;        /* ca chưa kết trong 3 ngày gần nhất: nhắc nhân viên nhập giờ kết ca thực tế */
-const CLOCK_UNDO_MS = 30 * 60e3;          /* được hủy lượt chấm công bấm nhầm trong 30 phút */
+const CLOCK_FRESH_MS = 30 * 60e3;         /* ca vừa lưu trong 30 phút: hiện ngay dưới nút chấm công để sửa nhầm */
 const CLOCK_EARLY_MS = 5 * 60e3;          /* cho phép giờ khai sau hiện tại 5 phút (đồng hồ điện thoại lệch) */
 
 const vnDate = ms => new Date(ms + VN_OFFSET_MS).toISOString().slice(0, 10);
@@ -230,7 +230,9 @@ function clockView(c, nowMs) {
   return { id: c._id, date: c.date, day: c.day, shift: c.shift, in: c.in, out: c.out || '',
     scheduled: !!c.scheduled, minutes: c.out ? TS.workedMinutes(c.in, c.out) : 0,
     late: !c.out && nowMs - c.inTs > CLOCK_MAX_MIN * 60e3,          /* quên kết ca: giờ hiện tại đã quá 16 giờ */
-    canUndo: nowMs - new Date(c.inAt).getTime() < CLOCK_UNDO_MS };
+    approved: !!c.approvedAt,
+    canUndo: !c.approvedAt,                                           /* chưa được chủ quán duyệt → nhân viên tự xóa được */
+    fresh: nowMs - new Date(c.inAt).getTime() < CLOCK_FRESH_MS };
 }
 
 /** Ngày sớm nhất được nhập bù: mùng 1 tháng này (luôn cho phép hôm qua – vd ca đêm 31 nhập vào mùng 1). */
@@ -269,7 +271,7 @@ async function clockState(db, staffId) {
     nowMs, date, week: mondayOf(date), day: t.day, published: t.published, mine: t.mine, today: t.clocks,
     required: date >= sets.clockFrom, clockFrom: sets.clockFrom,
     days,                                                    /* hôm nay → mùng 1, mới nhất trước */
-    recent: days.slice(1).flatMap(d => d.clocks.filter(c => c.out && c.canUndo)),   /* ca ngày trước vừa nhập bù */
+    recent: days.slice(1).flatMap(d => d.clocks.filter(c => c.out && c.fresh && c.canUndo)),   /* ca ngày trước vừa nhập bù */
     open: open[0] ? clockView(open[0], nowMs) : null
   };
 }
@@ -355,14 +357,14 @@ const PUBLIC = {
     return clockState(db, st._id);
   },
 
-  /** Hủy lượt chấm công bấm nhầm (trong 30 phút sau khi bấm). */
+  /** Xóa ca đã chấm công: được xóa bất cứ lúc nào, cho tới khi chủ quán duyệt. */
   async cancelClock(db, ctx, staffId, id) {
     const st = await activeStaff(db, staffId);
     const c = await db.collection('clocks').findOne({ _id: String(id || ''), staffId: st._id });
     if (!c) fail('Không tìm thấy lượt chấm công – hãy tải lại.');
-    if (Date.now() - new Date(c.inAt).getTime() >= CLOCK_UNDO_MS)
-      fail('Chỉ hủy được trong 30 phút sau khi bấm. Báo chủ quán nếu cần sửa.');
-    await db.collection('clocks').deleteOne({ _id: c._id });
+    if (c.approvedAt) fail('Ca này chủ quán đã duyệt nên không xóa được. Báo chủ quán nếu cần sửa.');
+    const d = await db.collection('clocks').deleteOne({ _id: c._id, approvedAt: { $exists: false } });   /* chặn cả khi chủ quán vừa duyệt cùng lúc */
+    if (!d.deletedCount) fail('Ca này chủ quán vừa duyệt nên không xóa được.');
     return clockState(db, st._id);
   },
 
@@ -548,6 +550,33 @@ const ADMIN = {
       }
       await db.collection('attendance').updateOne({ _id }, { $set: { week, day, shift, staffId, absent, in: tin, out: tout,
         note: String(data.note || '').slice(0, 200), by: ctx.user.name, at: new Date() } }, { upsert: true });
+      /* Chủ quán đã sửa giờ ca tự chấm → coi như đã duyệt, nhân viên không xóa được nữa */
+      await db.collection('clocks').updateOne({ week, day, shift, staffId, approvedAt: { $exists: false } },
+        { $set: { approvedAt: new Date(), approvedBy: ctx.user.name } });
+    }
+    return timesheetOf(db, week);
+  },
+
+  /**
+   * Duyệt / bỏ duyệt ca nhân viên tự chấm. Đã duyệt thì nhân viên không xóa được.
+   * which: {day, shift, staffId} – 1 ca; {day} – cả ngày; {} – cả tuần. Chỉ duyệt ca đã kết.
+   */
+  async approveClocks(db, ctx, week, which, approve) {
+    checkWeek(week);
+    which = which || {};
+    const q = { week };
+    if (which.day !== undefined && which.day !== null) q.day = Number(which.day);
+    if (which.shift !== undefined && which.shift !== null) { q.shift = Number(which.shift); q.staffId = String(which.staffId || ''); }
+    if (approve === false) {
+      await db.collection('clocks').updateMany(q, { $unset: { approvedAt: '', approvedBy: '' } });
+    } else {
+      if (q.staffId) {
+        const c = await db.collection('clocks').findOne(q);
+        if (!c) fail('Không tìm thấy ca tự chấm này – hãy tải lại.');
+        if (!c.out) fail('Nhân viên chưa kết ca này, chưa duyệt được. Bạn có thể sửa giờ ra rồi lưu.');
+      }
+      await db.collection('clocks').updateMany(Object.assign(q, { out: { $ne: '' }, approvedAt: { $exists: false } }),
+        { $set: { approvedAt: new Date(), approvedBy: ctx.user.name } });
     }
     return timesheetOf(db, week);
   },
