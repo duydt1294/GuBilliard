@@ -46,7 +46,7 @@ thành mật khẩu của database user `duydemo1294` (gõ mật khẩu gốc, a
 
 ### 3. Google Cloud (đăng nhập Gmail)
 
-Client `55981277953-70kk…` → **Authorized JavaScript origins** thêm `https://gubilliard.vercel.app` (không có `/` cuối). Mục **Audience**: *Publish app* hoặc thêm 2 Gmail chủ quán vào *Test users*. App **không dùng Client secret**.
+Client `259592665918-cqmd…` → **Authorized JavaScript origins** thêm `https://gubilliard.vercel.app` (không có `/` cuối). Mục **Audience**: *Publish app* hoặc thêm 2 Gmail chủ quán vào *Test users*. App **không dùng Client secret**.
 
 ### 4. Push & kiểm tra
 

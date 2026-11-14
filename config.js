@@ -19,7 +19,7 @@ module.exports = {
   OWNER_EMAILS: ['duydemo1294@gmail.com', 'hangochien2023@gmail.com'],
 
   // Client ID "Sign in with Google" (công khai, không phải bí mật)
-  GOOGLE_CLIENT_ID: '55981277953-70kkk72b2m31ku2d5n3p64t70c82gdkm.apps.googleusercontent.com',
+  GOOGLE_CLIENT_ID: '259592665918-cqmdotl9ihbalk9qfghfqn1996i4ikmb.apps.googleusercontent.com',
 
   // Mật khẩu chủ quán dự phòng (khi không đăng nhập Gmail được). Để '' = tắt đăng nhập bằng mật khẩu.
   OWNER_PASSWORD: '',
