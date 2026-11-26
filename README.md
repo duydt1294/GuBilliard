@@ -64,9 +64,17 @@ Vercel tự triển khai. Mở `https://gubilliard.vercel.app/api` → thấy `"
 ### 5. Dùng lần đầu
 
 1. Mở link → **Chủ quán đăng nhập** → **Đăng nhập bằng Google**.
-2. Tab **⚙️ Cài đặt**: sửa tên quán, giờ 3 ca, số người cần mỗi ca → Lưu. Thêm người quản lý + mã PIN (nếu có).
+2. Tab **⚙️ Cài đặt**: sửa tên quán, tên/giờ/số người cần của từng ca → Lưu. Thêm người quản lý + mã PIN (nếu có).
 3. Tab **👥 Nhân viên**: thêm nhân viên.
 4. Gửi link vào nhóm Zalo. Nhắc nhân viên **Thêm vào màn hình chính** để mở như ứng dụng.
+
+## Thêm / xóa ca làm
+
+Tab **⚙️ Cài đặt** → mục ca làm (chỉ **chủ quán** thêm/xóa được; người quản lý chỉ sửa tên, giờ, số người cần):
+
+- **➕ Thêm ca**: nhập tên, số người cần, giờ làm (vd `00:00 - 06:00`) → **Lưu cài đặt**. Tối đa **5 ca**/ngày. Các ca tự xếp theo giờ bắt đầu (ca sau 0:00 sáng đứng cuối, tính là đêm cùng ngày).
+- **🗑 Xóa** một ca → **Lưu cài đặt** → xác nhận. Lịch đã xếp và đăng ký của ca đó **từ hôm nay trở đi** bị xóa; ca biến mất khỏi đăng ký, xếp ca, chấm công. **Chấm công và bảng lương các ngày trước giữ nguyên** (ca đã xóa vẫn hiện đúng tên, giờ trong bảng lương cũ; nhân viên vẫn nhập bù được ngày cũ mà mình có lịch ca đó).
+- Sửa giờ ca chỉ áp dụng cho lịch xếp từ lúc đó; ca đã xếp trước giữ giờ cũ khi tính công.
 
 ## Quy trình hằng tuần
 

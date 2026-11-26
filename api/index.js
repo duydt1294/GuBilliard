@@ -63,6 +63,10 @@ function validKey(k, n) {
     p[0] >= 0 && p[0] < DAYS.length && p[1] >= 0 && p[1] < n;
 }
 const keyOf = r => r.day + '-' + r.shift;
+/** Ca đang dùng (chưa bị xóa). Ca đã xóa vẫn nằm trong danh sách (đánh dấu off) để dữ liệu cũ giữ đúng số thứ tự ca. */
+const isOn = (shifts, i) => !!shifts[i] && !shifts[i].off;
+const MAX_ACTIVE_SHIFTS = 5, MAX_ALL_SHIFTS = 12;
+
 const keyCmp = (a, b) => { const x = a.split('-').map(Number), y = b.split('-').map(Number); return x[0] - y[0] || x[1] - y[1]; };
 const newId = prefix => prefix + crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
 
@@ -311,6 +315,7 @@ const PUBLIC = {
     if (!Number.isInteger(shift) || shift < 0 || shift >= sets.shifts.length) fail('Vui lòng chọn ca.');
     const tin = TS.normTime(time);
     if (!tin) fail('Giờ nhận ca không hợp lệ (dạng 19:00).');
+    const offShift = !isOn(sets.shifts, shift);    /* ca đã bị xóa: chỉ nhập bù được ngày mà mình có lịch ca đó */
     const nowMs = Date.now(), today = bizDate(nowMs);
     const date = opt.date ? String(opt.date) : today;
     const dd = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date + 'T00:00:00Z') : null;
@@ -328,6 +333,8 @@ const PUBLIC = {
     const open = await db.collection('clocks').findOne(openClockQuery(st._id, nowMs));
     if (open) fail(`Bạn chưa kết ${(sets.shifts[open.shift] || {}).name || 'ca trước'} (nhận lúc ${open.in}) – hãy nhập giờ kết ca đó trước.`);
     const week = mondayOf(date), day = dayIdx(date);
+    if (offShift && !(await db.collection('assignments').findOne({ week, day, shift, staffId: st._id })))
+      fail(`${sets.shifts[shift].name} đã bị chủ quán xóa, hãy chọn ca khác.`);
     const scheduled = (await weekStatus(db, week)) === 'CONG_BO' &&
       !!(await db.collection('assignments').findOne({ week, day, shift, staffId: st._id }));
     const doc = { _id: newId('CC'), staffId: st._id, name: st.name,
@@ -374,9 +381,9 @@ const PUBLIC = {
     if ((await weekStatus(db, week)) !== 'MO') fail('Tuần này đã khóa đăng ký. Liên hệ chủ quán nếu cần đổi ca.');
     const st = await db.collection('staff').findOne({ _id: String(staffId || '') });
     if (!st || st.active === false) fail('Không tìm thấy nhân viên này.');
-    const n = (await settings(db)).shifts.length;
+    const shs = (await settings(db)).shifts, n = shs.length;
     const clean = Array.from(new Set((Array.isArray(slots) ? slots : []).map(String)))
-      .filter(k => validKey(k, n)).sort(keyCmp);
+      .filter(k => validKey(k, n) && isOn(shs, Number(k.split('-')[1]))).sort(keyCmp);
     const now = new Date(), nt = String(note || '').slice(0, 300);
     await db.collection('registrations').deleteMany({ week, staffId: st._id });
     if (clean.length) {
@@ -478,7 +485,9 @@ const ADMIN = {
     const st = await settings(db), n = st.shifts.length;
     const defs = st.shifts.map(x => TS.parseShiftTime(x.time));
     const now = new Date(), docs = [];
-    Object.keys(assigned && typeof assigned === 'object' ? assigned : {}).filter(k => validKey(k, n)).sort(keyCmp)
+    /* ca đã xóa: không nhận thay đổi từ máy khách, giữ nguyên lịch cũ của ca đó (các ngày đã qua vẫn tính lương) */
+    const off = st.shifts.map((x, i) => i).filter(i => !isOn(st.shifts, i));
+    Object.keys(assigned && typeof assigned === 'object' ? assigned : {}).filter(k => validKey(k, n) && isOn(st.shifts, Number(k.split('-')[1]))).sort(keyCmp)
       .forEach(k => {
         const [day, shift] = k.split('-').map(Number);
         Array.from(new Set((Array.isArray(assigned[k]) ? assigned[k] : []).map(String))).forEach(id => {
@@ -486,7 +495,7 @@ const ADMIN = {
             defIn: defs[shift] ? defs[shift].start : '', defOut: defs[shift] ? defs[shift].end : '' });
         });
       });
-    await db.collection('assignments').deleteMany({ week });
+    await db.collection('assignments').deleteMany(off.length ? { week, shift: { $nin: off } } : { week });
     if (docs.length) await db.collection('assignments').insertMany(docs);
     return ADMIN.getAdminWeek(db, ctx, week);
   },
@@ -601,19 +610,42 @@ const ADMIN = {
     return staffList(db);
   },
 
+  /**
+   * Lưu cài đặt. Mỗi dòng ca gửi lên: {i: số thứ tự ca đang có | null nếu là ca mới, name, time, need}.
+   * Ca đang có mà không gửi lên = bị xóa → đánh dấu off (không xóa khỏi danh sách, để dữ liệu cũ giữ đúng số thứ tự ca),
+   * đồng thời xóa lịch đã xếp & đăng ký của ca đó từ hôm nay trở đi. Thêm/xóa ca: chỉ chủ quán.
+   */
   async saveSettings(db, ctx, s) {
     s = s || {};
     const shopName = String(s.shopName || '').trim().slice(0, 60) || DEFAULT_SETTINGS.shopName;
-    const shifts = (Array.isArray(s.shifts) ? s.shifts : []).slice(0, 4).map((x, i) => ({
-      name: String((x && x.name) || '').trim().slice(0, 30) || ('Ca ' + (i + 1)),
+    const cur = await settings(db);
+    const old = cur.shifts, rows = Array.isArray(s.shifts) ? s.shifts : [];
+    const positional = rows.every(r => !r || r.i === undefined);          /* máy khách bản cũ: gửi theo thứ tự */
+    const shifts = old.map(x => Object.assign({}, x));
+    const clean = (x, k) => ({
+      name: String((x && x.name) || '').trim().slice(0, 30) || ('Ca ' + (k + 1)),
       time: String((x && x.time) || '').trim().slice(0, 30),
       need: Math.max(0, Math.min(20, parseInt(x && x.need, 10) || 0))
-    }));
-    if (!shifts.length) fail('Cần ít nhất 1 ca.');
-    shifts.forEach(x => {
+    });
+    const seen = new Set(), added = [];
+    rows.forEach((x, k) => {
+      const i = positional ? (k < old.length ? k : null) : (x.i === null || x.i === '' ? null : Number(x.i));
+      if (i === null) { added.push(clean(x, shifts.length + added.length)); return; }
+      if (!Number.isInteger(i) || !isOn(old, i) || seen.has(i)) fail('Danh sách ca vừa thay đổi – hãy tải lại trang rồi sửa tiếp.');
+      seen.add(i);
+      Object.assign(shifts[i], clean(x, i));
+    });
+    const removed = positional ? [] : old.map((x, i) => i).filter(i => isOn(old, i) && !seen.has(i));
+    if ((added.length || removed.length) && ctx.user.role !== 'owner') fail('Chỉ chủ quán mới thêm hoặc xóa ca được.');
+    removed.forEach(i => { shifts[i].off = true; shifts[i].offAt = new Date(); });
+    added.forEach(x => shifts.push(x));
+    const active = shifts.filter(x => !x.off);
+    if (!active.length) fail('Cần ít nhất 1 ca.');
+    if (active.length > MAX_ACTIVE_SHIFTS) fail(`Tối đa ${MAX_ACTIVE_SHIFTS} ca mỗi ngày.`);
+    if (shifts.length > MAX_ALL_SHIFTS) fail('Đã thêm/xóa ca quá nhiều lần – liên hệ người cài đặt app.');
+    active.forEach(x => {
       if (!TS.parseShiftTime(x.time)) fail(`Giờ làm của "${x.name}" chưa đúng dạng, hãy ghi như 09:00 - 14:00.`);
     });
-    const cur = await settings(db);
     let hourlyRate = cur.hourlyRate;
     if (ctx.user.role === 'owner' && s.hourlyRate !== undefined && String(s.hourlyRate).trim() !== '') {
       hourlyRate = parseRate(s.hourlyRate);
@@ -626,6 +658,12 @@ const ADMIN = {
       clockFrom = v;
     }
     await db.collection('settings').updateOne({ _id: 'app' }, { $set: { shopName, shifts, hourlyRate, clockFrom, updatedAt: new Date() } }, { upsert: true });
+    if (removed.length) {
+      /* Ca bị xóa: bỏ lịch đã xếp & đăng ký từ hôm nay trở đi; ngày đã qua giữ nguyên để bảng lương không đổi */
+      const today = bizDate(Date.now()), wk = mondayOf(today), di = dayIdx(today);
+      const q = { shift: { $in: removed }, $or: [{ week: { $gt: wk } }, { week: wk, day: { $gte: di } }] };
+      await Promise.all(['assignments', 'registrations'].map(c => db.collection(c).deleteMany(q)));
+    }
     return { shopName, shifts, hourlyRate, clockFrom };
   }
 };

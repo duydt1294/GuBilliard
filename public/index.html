@@ -194,7 +194,10 @@ input[type=time]{min-height:46px}
 .orline::before,.orline::after{content:'';flex:1;height:1px;background:var(--bd)}
 .shrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
 .shrow .tm{grid-column:1/-1}
-.shrow small{grid-column:1/-1;color:var(--mu);font-weight:600;font-size:13px}
+.shrow small{grid-column:1/-1;color:var(--mu);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
+.shrow .pos{white-space:nowrap}
+.shrow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shrow .shdel{margin-left:auto;color:var(--r);font-size:13px;min-height:34px;padding:0 4px;width:auto;white-space:nowrap;flex:none}
 .row2{display:flex;gap:8px}
 .row2>*{flex:1}
 /* Thanh cố định dưới */
@@ -296,7 +299,7 @@ input[type=time]{min-height:46px}
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
       </div>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.4</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.5</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -388,6 +391,7 @@ input[type=time]{min-height:46px}
         <input id="cfClock" type="date">
         <p class="hint" style="margin:6px 0 0">Từ ngày này: có lịch mà <b>không bấm Nhận ca/Kết ca = 0 giờ</b> (chủ quán sửa lại nếu có đi làm). Trước ngày này: không bấm vẫn tính đúng giờ ca. Giờ tính theo thực tế, hiển thị 2 số thập phân (vd 2,23 giờ).</p>
         <div id="cfShifts"></div>
+        <button class="sec full" id="btnAddShift" type="button" style="margin-top:10px" hidden>➕ Thêm ca</button>
         <button class="full" id="btnSaveCf" style="margin-top:10px">💾 Lưu cài đặt</button>
       </div>
       <div class="card">
@@ -698,9 +702,9 @@ function renderStaffWeekNav(){
 function schedTable(week, map, meId){
   const I = S.init;
   let h = '<table class="sched"><tr><th></th>' +
-    I.shifts.map(s => `<th>${esc(s.name)}<br><span class="mu">${esc(s.time)}</span></th>`).join('') + '</tr>';
+    actS().map(i => `<th>${esc(I.shifts[i].name)}<br><span class="mu">${esc(I.shifts[i].time)}</span></th>`).join('') + '</tr>';
   I.days.forEach((dn,d) => {
-    h += `<tr><th>${SHORT[d]}<br><span class="mu">${dayDate(week,d)}</span></th>` + I.shifts.map((_,s) => {
+    h += `<tr><th>${SHORT[d]}<br><span class="mu">${dayDate(week,d)}</span></th>` + actS().map(s => {
       const a = map[d+'-'+s] || [];
       return '<td>' + (a.length ? a.map(p => p.id === meId ? `<span class="me">${esc(p.name)}</span>` : esc(p.name)).join('<br>') : '<span class="mu">—</span>') + '</td>';
     }).join('') + '</tr>';
@@ -737,9 +741,9 @@ function renderStaff(){
 
   $('#regTitle').textContent = open ? 'Đăng ký ca có thể làm' : 'Ca bạn đã đăng ký';
   let h = '<table class="reg"><tr><th></th>' +
-    I.shifts.map(s => `<th>${esc(s.name)}<small>${esc(s.time)}</small></th>`).join('') + '</tr>';
+    actS().map(i => `<th>${esc(I.shifts[i].name)}<small>${esc(I.shifts[i].time)}</small></th>`).join('') + '</tr>';
   I.days.forEach((dn,d) => {
-    h += `<tr><td class="d" data-d="${d}">${dn}<small>${dayDate(S.week,d)}</small></td>` + I.shifts.map((_,s) => {
+    h += `<tr><td class="d" data-d="${d}">${dn}<small>${dayDate(S.week,d)}</small></td>` + actS().map(s => {
       const k = d+'-'+s, on = S.slots.has(k);
       return `<td><button class="cell ${on?'on':''}" data-k="${k}" aria-pressed="${on}" ${open?'':'disabled'}>${on?'✓':'+'}</button></td>`;
     }).join('') + '</tr>';
@@ -763,7 +767,7 @@ $('#regGrid').addEventListener('click', e => {
   const td = e.target.closest('td.d');
   if (b) setCell(b.dataset.k, !S.slots.has(b.dataset.k));
   else if (td) {                               /* chạm tên ngày → chọn/bỏ cả ngày */
-    const d = td.dataset.d, keys = S.init.shifts.map((_,s) => d+'-'+s);
+    const d = td.dataset.d, keys = actS().map(s => d+'-'+s);
     const allOn = keys.every(k => S.slots.has(k));
     keys.forEach(k => setCell(k, !allOn));
   } else return;
@@ -796,6 +800,12 @@ function shRange(i){
   if (a < 360) a += 1440; if (b <= a) b += 1440;
   return { a, b };
 }
+/** Các ca đang dùng (bỏ ca đã xóa), xếp theo giờ bắt đầu trong ngày làm việc. Giá trị là số thứ tự ca gốc. */
+function actS(){
+  const sh = S.init.shifts;
+  return sh.map((_, i) => i).filter(i => !sh[i].off)
+    .sort((x, y) => ((shRange(x) || {}).a || 0) - ((shRange(y) || {}).a || 0) || x - y);
+}
 const bizMin = t => { const m = toM(t); return m < 360 ? m + 1440 : m; };
 
 const daysBetween = (a, b) => Math.round((fromIso(b) - fromIso(a)) / 864e5);
@@ -812,7 +822,7 @@ const dayName = d => `${S.init.days[d.day]} ${dm(fromIso(d.date))}`;
 /** Ca gợi ý: ưu tiên ca trong lịch của mình chưa chấm; hôm nay thì chọn ca gần giờ hiện tại nhất. */
 function pickShift(d, isToday){
   const done = new Set(d.clocks.map(x => x.shift));
-  const all = S.init.shifts.map((_, i) => i).filter(i => !done.has(i));
+  const all = actS().concat(d.mine.filter(i => S.init.shifts[i] && S.init.shifts[i].off)).filter(i => !done.has(i));
   const mine = d.mine.filter(i => !done.has(i));
   const now = bizMin(vnNowHM());
   const score = i => { if (!isToday) return i; const r = shRange(i); if (!r) return 9999; return now < r.a ? r.a - now : (now < r.b ? 0 : (now - r.b) * 2); };
@@ -900,8 +910,10 @@ function ckSetDay(v){
   ckDayV = v;
   $('#ckDate').value = v;
   const d = dayOf(v), done = new Set(d.clocks.map(x => x.shift));
-  $('#ckShift').innerHTML = S.init.shifts.map((sh, i) => `<option value="${i}" ${done.has(i) ? 'disabled' : ''}>${esc(sh.name)} · ${esc(sh.time)}` +
-    (done.has(i) ? ' (đã chấm)' : d.mine.includes(i) ? ' ⭐ lịch của bạn' : '') + '</option>').join('');
+  /* ca đang dùng + ca đã xóa mà ngày đó mình vẫn có lịch (để nhập bù ngày cũ) */
+  const opts = actS().concat(d.mine.filter(i => S.init.shifts[i] && S.init.shifts[i].off));
+  $('#ckShift').innerHTML = opts.map(i => { const sh = S.init.shifts[i]; return `<option value="${i}" ${done.has(i) ? 'disabled' : ''}>${esc(sh.name)} · ${esc(sh.time)}` +
+    (done.has(i) ? ' (đã chấm)' : d.mine.includes(i) ? ' ⭐ lịch của bạn' : '') + '</option>'; }).join('');
   const pick = pickShift(d, v === S.clock.date);
   if (pick === undefined) $('#ckShift').selectedIndex = -1; else $('#ckShift').value = pick;
   ckUpd();
@@ -1198,10 +1210,10 @@ $('#adActions').addEventListener('click', e => {
 
 function renderOverview(){
   const r = S.aw, I = S.init;
-  let h = '<table class="ov"><tr><th></th>' + I.shifts.map(s => `<th>${esc(s.name)}</th>`).join('') + '</tr>';
+  let h = '<table class="ov"><tr><th></th>' + actS().map(i => `<th>${esc(I.shifts[i].name)}</th>`).join('') + '</tr>';
   I.days.forEach((dn,d) => {
     h += `<tr class="${d === S.selDay ? 'sel' : ''}"><th>${SHORT[d]}<small>${dayDate(S.adminWeek,d)}</small></th>` +
-      I.shifts.map((sh,s) => {
+      actS().map(s => { const sh = I.shifts[s];
         const k = d+'-'+s, n = (S.asg[k] || []).length, need = Number(sh.need) || 0, reg = (r.registered[k] || []).length;
         return `<td><button class="ovc ${ovState(n,need,reg)}" data-d="${d}">${n}/${need}<small>${n > need ? 'dư ' + (n - need) : (reg ? reg + ' đăng ký' : 'chưa ai đk')}</small></button></td>`;
       }).join('') + '</tr>';
@@ -1220,7 +1232,7 @@ function renderDay(){
   let h = `<div class="dnav"><button data-dd="-1" ${d === 0 ? 'disabled' : ''} aria-label="Ngày trước">‹</button>
     <div><b>${I.days[d]}</b> · ${dayDate(S.adminWeek,d)}</div>
     <button data-dd="1" ${d === I.days.length-1 ? 'disabled' : ''} aria-label="Ngày sau">›</button></div>`;
-  I.shifts.forEach((sh,s) => {
+  actS().forEach(s => { const sh = I.shifts[s];
     const k = d+'-'+s, reg = r.registered[k] || [], asg = S.asg[k] || [], need = Number(sh.need) || 0;
     const regIds = reg.map(p => p.id);
     let chips = reg.map(p => {
@@ -1304,7 +1316,7 @@ $('#btnUndo').onclick = async () => {
 
 function countSlots(){
   let lack = 0, over = 0;
-  S.init.days.forEach((_,d) => S.init.shifts.forEach((sh,s) => {
+  S.init.days.forEach((_,d) => actS().forEach(s => { const sh = S.init.shifts[s];
     const n = (S.asg[d+'-'+s] || []).length, need = Number(sh.need) || 0;
     if (n < need) lack++; else if (n > need) over++;
   }));
@@ -1334,10 +1346,10 @@ function autoAssign(){
   r.staff.forEach(s => { if (s.active) active[s.id] = true; });
   Object.values(S.asg).forEach(a => a.forEach(id => cnt[id] = (cnt[id] || 0) + 1));
   let filled = 0;
-  I.days.forEach((_,d) => I.shifts.forEach((sh,s) => {
+  I.days.forEach((_,d) => actS().forEach(s => { const sh = I.shifts[s];
     const k = d+'-'+s, a = S.asg[k] = S.asg[k] || [], need = Number(sh.need) || 0;
     if (a.length >= need) return;
-    const busy = id => I.shifts.some((_,s2) => s2 !== s && (S.asg[d+'-'+s2] || []).includes(id)) ? 1 : 0;
+    const busy = id => actS().some(s2 => s2 !== s && (S.asg[d+'-'+s2] || []).includes(id)) ? 1 : 0;
     const cand = (r.registered[k] || []).map(p => p.id).filter(id => active[id] && !a.includes(id))
       .sort((x,y) => (busy(x) - busy(y)) || ((cnt[x] || 0) - (cnt[y] || 0)));
     while (a.length < need && cand.length) { const id = cand.shift(); a.push(id); cnt[id] = (cnt[id] || 0) + 1; filled++; }
@@ -1351,7 +1363,7 @@ function openZalo(){
   let t = `📅 LỊCH CA ${I.shopName.toUpperCase()}\nTuần ${weekLabel(S.adminWeek)}\n`;
   I.days.forEach((dn,d) => {
     t += `\n▪️ ${dn} (${dayDate(S.adminWeek,d)})\n`;
-    I.shifts.forEach((sh,s) => {
+    actS().forEach(s => { const sh = I.shifts[s];
       const a = (S.asg[d+'-'+s] || []).map(id => byId[id] ? byId[id].name : id);
       t += `   • ${sh.name} (${sh.time}): ${a.length ? a.join(', ') : '—'}\n`;
     });
@@ -1701,25 +1713,50 @@ function renderSettings(){
   $('#cfRate').disabled = !isOwner();
   $('#cfClock').value = s.clockFrom || '';
   $('#cfClock').disabled = !isOwner();
-  $('#cfShifts').innerHTML = s.shifts.map((x,i) => `
-    <div class="shrow">
-      <small>Ca thứ ${i+1} · tên ca và số người cần</small>
-      <input class="nm" value="${esc(x.name)}" placeholder="Tên ca" aria-label="Tên ca ${i+1}">
-      <input class="nd" type="number" inputmode="numeric" min="0" max="20" value="${Number(x.need) || 0}" aria-label="Số người cần ca ${i+1}">
-      <input class="tm" value="${esc(x.time)}" placeholder="Giờ làm, vd 08:00 - 14:00" aria-label="Giờ làm ca ${i+1}">
-    </div>`).join('');
+  $('#cfShifts').innerHTML = actS().map(i => shRow(i, s.shifts[i])).join('');
+  cfShiftsUpd();
   $('#cfLink').value = location.origin;
   $('#cfMe').textContent = !S.me ? '' : S.me.role !== 'owner' ? S.me.name + ' (quản lý)'
     : (S.me.email ? S.me.name + ' · ' + S.me.email + ' (chủ quán)' : 'Chủ quán');
   $('#mgrCard').hidden = !(S.me && S.me.role === 'owner');
   if (S.me && S.me.role === 'owner' && !S.mgrLoaded) loadManagers();
 }
+/** Một dòng ca trong Cài đặt. i = số thứ tự ca gốc ('' = ca mới chưa lưu). */
+const shRow = (i, x) => `
+    <div class="shrow" data-i="${i}">
+      <small><span class="pos"></span><span class="lbl">· tên ca và số người cần</span>${isOwner() ? `<button class="link shdel" type="button" aria-label="Xóa ca">🗑 Xóa</button>` : ''}</small>
+      <input class="nm" value="${esc(x.name)}" placeholder="Tên ca" aria-label="Tên ca">
+      <input class="nd" type="number" inputmode="numeric" min="0" max="20" value="${Number(x.need) || 0}" aria-label="Số người cần">
+      <input class="tm" value="${esc(x.time)}" placeholder="Giờ làm, vd 08:00 - 14:00" aria-label="Giờ làm">
+    </div>`;
+const MAX_SHIFTS = 5;
+function cfShiftsUpd(){
+  const rows = $$('#cfShifts .shrow');
+  rows.forEach((r, k) => { r.querySelector('.pos').textContent = 'Ca thứ ' + (k + 1) + (r.dataset.i === '' ? ' (mới)' : ''); });
+  $$('#cfShifts .shdel').forEach(b => { b.hidden = rows.length <= 1; });
+  $('#btnAddShift').hidden = !isOwner() || rows.length >= MAX_SHIFTS;
+}
+$('#cfShifts').addEventListener('click', e => {
+  const b = e.target.closest('.shdel'); if (!b) return;
+  const row = b.closest('.shrow');
+  if ($$('#cfShifts .shrow').length <= 1) return;
+  row.remove(); cfShiftsUpd();
+  toast('Đã bỏ ca khỏi danh sách – bấm Lưu cài đặt để áp dụng');
+});
+$('#btnAddShift').onclick = () => {
+  $('#cfShifts').insertAdjacentHTML('beforeend', shRow('', { name: 'Ca ' + ($$('#cfShifts .shrow').length + 1), time: '', need: 2 }));
+  cfShiftsUpd();
+  const last = $$('#cfShifts .shrow').pop(); last.querySelector('.tm').focus();
+};
 const shiftTimeOk = t => /(\d{1,2})\s*(?:[:hg.]\s*(\d{2})?)?\s*[-–—~]+\s*(\d{1,2})/.test(t || '');
 $('#btnSaveCf').onclick = async () => {
   const bad = $$('#cfShifts .shrow').find(r => !shiftTimeOk(r.querySelector('.tm').value));
   if (bad) { toast('Giờ làm của ca chưa đúng dạng, vd 09:00 - 14:00', true); bad.querySelector('.tm').focus(); return; }
-  const shifts = $$('#cfShifts .shrow').map(r => ({
+  const shifts = $$('#cfShifts .shrow').map(r => ({ i: r.dataset.i === '' ? null : Number(r.dataset.i),
     name: r.querySelector('.nm').value, time: r.querySelector('.tm').value, need: r.querySelector('.nd').value }));
+  /* Xóa ca: hỏi lại vì lịch & đăng ký của ca đó từ hôm nay trở đi sẽ bị xóa */
+  const kept = new Set(shifts.map(x => x.i)), gone = actS().filter(i => !kept.has(i)).map(i => S.init.shifts[i].name);
+  if (gone.length && !(await ask(`Xóa ${gone.join(', ')}?\n\nLịch đã xếp và đăng ký của ca này từ hôm nay trở đi sẽ bị xóa. Chấm công và bảng lương các ngày trước giữ nguyên.`, '🗑 Xóa ca', 'Không'))) return;
   const out = await call('saveSettings', { shopName: $('#cfShop').value, shifts, hourlyRate: isOwner() ? (parseK($('#cfRate').value) || '') : undefined,
     clockFrom: isOwner() && $('#cfClock').value ? $('#cfClock').value : undefined });
   if (!out) return;
