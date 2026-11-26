@@ -72,7 +72,7 @@ Vercel tự triển khai. Mở `https://gubilliard.vercel.app/api` → thấy `"
 
 Tab **⚙️ Cài đặt** → mục ca làm (chỉ **chủ quán** thêm/xóa được; người quản lý chỉ sửa tên, giờ, số người cần):
 
-- **➕ Thêm ca**: nhập tên, số người cần, giờ làm (vd `00:00 - 06:00`) → **Lưu cài đặt**. Tối đa **5 ca**/ngày. Các ca tự xếp theo giờ bắt đầu (ca sau 0:00 sáng đứng cuối, tính là đêm cùng ngày).
+- **➕ Thêm ca**: nhập tên, số người cần, chọn giờ bằng 2 ô **Bắt đầu / Kết thúc** (kết thúc nhỏ hơn bắt đầu = ca qua nửa đêm, app ghi rõ "kết thúc sang hôm sau" và số giờ của ca) → **Lưu cài đặt**. Tối đa **5 ca**/ngày. Các ca tự xếp theo giờ bắt đầu (ca sau 0:00 sáng đứng cuối, tính là đêm cùng ngày).
 - **🗑 Xóa** một ca → **Lưu cài đặt** → xác nhận. Lịch đã xếp và đăng ký của ca đó **từ hôm nay trở đi** bị xóa; ca biến mất khỏi đăng ký, xếp ca, chấm công. **Chấm công và bảng lương các ngày trước giữ nguyên** (ca đã xóa vẫn hiện đúng tên, giờ trong bảng lương cũ; nhân viên vẫn nhập bù được ngày cũ mà mình có lịch ca đó).
 - Sửa giờ ca chỉ áp dụng cho lịch xếp từ lúc đó; ca đã xếp trước giữ giờ cũ khi tính công.
 

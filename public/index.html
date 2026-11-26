@@ -193,7 +193,12 @@ input[type=time]{min-height:46px}
 .orline{display:flex;align-items:center;gap:10px;color:var(--mu);font-size:13px;margin:16px 0 12px}
 .orline::before,.orline::after{content:'';flex:1;height:1px;background:var(--bd)}
 .shrow{display:grid;grid-template-columns:1fr 84px;gap:6px;padding:10px 0;border-bottom:1px solid var(--bd)}
-.shrow .tm{grid-column:1/-1}
+.shrow .tms{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+.shrow .tms > div{min-width:0}
+.shrow .tms input{width:100%;min-width:0;padding-left:10px;padding-right:4px;font-size:15px}
+.shrow .tms input::-webkit-calendar-picker-indicator{margin-left:2px}
+.shrow .tms label{margin:0;font-size:12px;color:var(--mu);font-weight:600}
+.shrow .tmhint{grid-column:1/-1;font-size:12px;color:var(--mu);margin-top:-2px}
 .shrow small{grid-column:1/-1;color:var(--mu);font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px}
 .shrow .pos{white-space:nowrap}
 .shrow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -299,7 +304,7 @@ input[type=time]{min-height:46px}
       <details class="card" id="fullSched" hidden><summary>📅 Lịch cả quán</summary><div id="fullSchedBody"></div></details>
       </div>
     </div>
-    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.5</div></div>
+    <div class="foot"><button class="link" id="lnkAdmin">🔑 Chủ quán đăng nhập</button><div class="mu" style="font-size:12px;margin-top:6px">Phiên bản 3.6</div></div>
   </section>
 
   <!-- ============ ĐĂNG NHẬP ============ -->
@@ -386,7 +391,7 @@ input[type=time]{min-height:46px}
         <input id="cfShop">
         <label for="cfRate" style="margin-top:12px">Lương mặc định cho nhân viên mới <span class="mu">(nghìn đồng / giờ)</span></label>
         <input id="cfRate" inputmode="decimal" placeholder="Vd: 18">
-        <p class="hint" style="margin:6px 0 0">Lương từng người chỉnh ở tab Nhân viên. Giờ làm của ca nên ghi dạng <b>09:00 - 14:00</b> để chấm công tự lấy giờ.</p>
+        <p class="hint" style="margin:6px 0 0">Lương từng người chỉnh ở tab Nhân viên. Giờ ca chọn bằng 2 ô <b>Bắt đầu → Kết thúc</b>; kết thúc nhỏ hơn bắt đầu = ca qua nửa đêm.</p>
         <label for="cfClock" style="margin-top:12px">Bắt buộc tự chấm công từ ngày</label>
         <input id="cfClock" type="date">
         <p class="hint" style="margin:6px 0 0">Từ ngày này: có lịch mà <b>không bấm Nhận ca/Kết ca = 0 giờ</b> (chủ quán sửa lại nếu có đi làm). Trước ngày này: không bấm vẫn tính đúng giờ ca. Giờ tính theo thực tế, hiển thị 2 số thập phân (vd 2,23 giờ).</p>
@@ -1727,15 +1732,35 @@ const shRow = (i, x) => `
       <small><span class="pos"></span><span class="lbl">· tên ca và số người cần</span>${isOwner() ? `<button class="link shdel" type="button" aria-label="Xóa ca">🗑 Xóa</button>` : ''}</small>
       <input class="nm" value="${esc(x.name)}" placeholder="Tên ca" aria-label="Tên ca">
       <input class="nd" type="number" inputmode="numeric" min="0" max="20" value="${Number(x.need) || 0}" aria-label="Số người cần">
-      <input class="tm" value="${esc(x.time)}" placeholder="Giờ làm, vd 08:00 - 14:00" aria-label="Giờ làm">
+      <div class="tms">
+        <div><label>Bắt đầu</label><input class="t1" type="time" value="${hmOf(x.time).a}" aria-label="Giờ bắt đầu"></div>
+        <div><label>Kết thúc</label><input class="t2" type="time" value="${hmOf(x.time).b}" aria-label="Giờ kết thúc"></div>
+      </div>
+      <div class="tmhint"></div>
     </div>`;
+/** "09:00 - 14:00", "9h-14h"… → {a:'09:00', b:'14:00'} để điền vào ô chọn giờ. */
+function hmOf(text){
+  const m = String(text || '').match(/(\d{1,2})\s*(?:[:hg.]\s*(\d{2})?)?\s*[-–—~đến]+\s*(\d{1,2})\s*(?:[:hg.]\s*(\d{2})?)?/i);
+  if (!m) return { a: '', b: '' };
+  const f = (h, mm) => String(+h % 24).padStart(2, '0') + ':' + String(+(mm || 0)).padStart(2, '0');
+  return { a: f(m[1], m[2]), b: f(m[3], m[4]) };
+}
+/** Ghi chú dưới 2 ô giờ: số giờ của ca, báo ca qua nửa đêm. */
+function shHint(row){
+  const a = row.querySelector('.t1').value, b = row.querySelector('.t2').value, el = row.querySelector('.tmhint');
+  if (!a || !b) { el.textContent = 'Chọn giờ bắt đầu và kết thúc.'; return; }
+  if (a === b) { el.textContent = '⚠️ Giờ bắt đầu và kết thúc trùng nhau.'; return; }
+  el.textContent = `Ca dài ${hrs(workMin(a, b))}${b < a ? ' · kết thúc sang hôm sau' : ''}`;
+}
 const MAX_SHIFTS = 5;
 function cfShiftsUpd(){
   const rows = $$('#cfShifts .shrow');
+  rows.forEach(shHint);
   rows.forEach((r, k) => { r.querySelector('.pos').textContent = 'Ca thứ ' + (k + 1) + (r.dataset.i === '' ? ' (mới)' : ''); });
   $$('#cfShifts .shdel').forEach(b => { b.hidden = rows.length <= 1; });
   $('#btnAddShift').hidden = !isOwner() || rows.length >= MAX_SHIFTS;
 }
+$('#cfShifts').addEventListener('input', e => { const r = e.target.closest('.shrow'); if (r && e.target.type === 'time') shHint(r); });
 $('#cfShifts').addEventListener('click', e => {
   const b = e.target.closest('.shdel'); if (!b) return;
   const row = b.closest('.shrow');
@@ -1746,14 +1771,14 @@ $('#cfShifts').addEventListener('click', e => {
 $('#btnAddShift').onclick = () => {
   $('#cfShifts').insertAdjacentHTML('beforeend', shRow('', { name: 'Ca ' + ($$('#cfShifts .shrow').length + 1), time: '', need: 2 }));
   cfShiftsUpd();
-  const last = $$('#cfShifts .shrow').pop(); last.querySelector('.tm').focus();
+  const last = $$('#cfShifts .shrow').pop(); last.scrollIntoView({ block: 'center' }); last.querySelector('.nm').focus();
 };
-const shiftTimeOk = t => /(\d{1,2})\s*(?:[:hg.]\s*(\d{2})?)?\s*[-–—~]+\s*(\d{1,2})/.test(t || '');
 $('#btnSaveCf').onclick = async () => {
-  const bad = $$('#cfShifts .shrow').find(r => !shiftTimeOk(r.querySelector('.tm').value));
-  if (bad) { toast('Giờ làm của ca chưa đúng dạng, vd 09:00 - 14:00', true); bad.querySelector('.tm').focus(); return; }
+  const tOf = r => [r.querySelector('.t1').value, r.querySelector('.t2').value];
+  const bad = $$('#cfShifts .shrow').find(r => { const [a, b] = tOf(r); return !a || !b || a === b; });
+  if (bad) { toast('Chọn giờ bắt đầu và kết thúc của ca (không được trùng nhau)', true); bad.querySelector(bad.querySelector('.t1').value ? '.t2' : '.t1').focus(); return; }
   const shifts = $$('#cfShifts .shrow').map(r => ({ i: r.dataset.i === '' ? null : Number(r.dataset.i),
-    name: r.querySelector('.nm').value, time: r.querySelector('.tm').value, need: r.querySelector('.nd').value }));
+    name: r.querySelector('.nm').value, time: tOf(r).join(' - '), need: r.querySelector('.nd').value }));
   /* Xóa ca: hỏi lại vì lịch & đăng ký của ca đó từ hôm nay trở đi sẽ bị xóa */
   const kept = new Set(shifts.map(x => x.i)), gone = actS().filter(i => !kept.has(i)).map(i => S.init.shifts[i].name);
   if (gone.length && !(await ask(`Xóa ${gone.join(', ')}?\n\nLịch đã xếp và đăng ký của ca này từ hôm nay trở đi sẽ bị xóa. Chấm công và bảng lương các ngày trước giữ nguyên.`, '🗑 Xóa ca', 'Không'))) return;
